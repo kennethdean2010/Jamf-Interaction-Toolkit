@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><extensionAttribute>
+<displayName>UEX - Deferral Detection</displayName>
+<description>Returns 'active' if there are deferrals on the computer and 'none' if there are none</description>
+<dataType>string</dataType>
+<scriptContentsMac>#!/bin/bash&#13;
+&#13;
+moredefer=`ls /Library/Application\ Support/JAMF/UEX/defer_jss/ | grep .plist`&#13;
+if [[ -z $moredefer ]] ; then &#13;
+	result="none"&#13;
+else&#13;
+	result="active"&#13;
+fi&#13;
+&#13;
+echo "&lt;result&gt;"$result"&lt;/result&gt;"</scriptContentsMac>
+<scriptContentsWindows/>
+</extensionAttribute>

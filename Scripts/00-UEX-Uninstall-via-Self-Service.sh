@@ -7,7 +7,7 @@ jamfBinary="/usr/local/jamf/bin/jamf"
 # 
 # This can be used for UEX and non-UEX Policies to trigger the install policy.
 # 
-# Version Number: 3.2
+# Version Number: 3.7
 # 
 # Created January 31st, 2017 by
 # DR = David Ramirez (David.Ramirez@adidas-group.com) 
@@ -15,7 +15,7 @@ jamfBinary="/usr/local/jamf/bin/jamf"
 # Updated September 2tth, 2017 by
 # DR = David Ramirez (David.Ramirez@adidas-group.com) 
 # 
-# Copyright (c) 2017 the adidas Group
+# Copyright (c) 2018 the adidas Group
 # All rights reserved.
 ##########################################################################################
 ########################################################################################## 
