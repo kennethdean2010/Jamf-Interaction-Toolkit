@@ -1,13 +1,24 @@
 #!/bin/bash
 
 ##########################################################################################
+##								Paramaters for Branding									##
+##########################################################################################
+
+title="adidas | Global IT"
+customLogo="/Library/Application Support/JAMF/UEX/resources/adidas_company_logo_BWr.png"
+SelfServiceIcon="/Library/Application Support/JAMF/UEX/resources/Self Service@2x.icns"
+
+##########################################################################################
+##########################################################################################
+##							Do not make any changes below								##
+##########################################################################################
 ##########################################################################################
 # 
 # Block script runs through plists in ../UEX/block_jss/ to kill apps during installation. 
 # It run through the list of apps checks to see if they are running and then kills them.
 # 
 # Name: Block-notification.sh
-# Version Number: 3.0
+# Version Number: 3.7
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas-group.com)
@@ -15,16 +26,16 @@
 # Updates January 23rd, 2016 by
 # DR = David Ramirez (D avid.Ramirez@adidas-group.com) 
 # 
-# Copyright (c) 2017 the adidas Group
+# Copyright (c) 2018 the adidas Group
 # All rights reserved.
 ##########################################################################################
 ########################################################################################## 
 
 ##########################################################################################
-##								STATIC VARIABLES FOR CD DIALOGS							##
+##						STATIC VARIABLES FOR CocoaDialog DIALOGS						##
 ##########################################################################################
 
-CD="/Library/Application Support/JAMF/UEX/resources/cocoaDialog.app/Contents/MacOS/cocoaDialog"
+CocoaDialog="/Library/Application Support/JAMF/UEX/resources/cocoaDialog.app/Contents/MacOS/CocoaDialog"
 
 ##########################################################################################
 
@@ -34,16 +45,12 @@ CD="/Library/Application Support/JAMF/UEX/resources/cocoaDialog.app/Contents/Mac
 ##########################################################################################
 
 jhPath="/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper"
-title="adidas | Global IT"
-heading=$name
 
-icondir="/Library/Application Support/JAMF/UEX/resources/adidas_company_logo_BWr.png"
-woappsIcon="/Library/Application Support/adidas/World of Apps/Self Service@2x.icns"
 #if the icon file doesn't exist then set to a standard icon
-if [[ -e "$woappsIcon" ]]; then
-	icon="$woappsIcon"
-elif [ -e "$icondir" ] ; then
-	icon="$icondir"
+if [[ -e "$SelfServiceIcon" ]]; then
+	icon="$SelfServiceIcon"
+elif [ -e "$customLogo" ] ; then
+	icon="$customLogo"
 else
 	icon="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns"
 fi
@@ -58,6 +65,29 @@ fi
 logdir="/Library/Application Support/JAMF/UEX/UEX_Logs/"
 # resulttmp="$logname"_result.log
 ##########################################################################################
+
+##########################################################################################
+# 										Functions										 #
+##########################################################################################
+
+fn_getPlistValue () {
+	/usr/libexec/PlistBuddy -c "print $1" /Library/Application\ Support/JAMF/UEX/$2/"$3"
+}
+
+logInUEX () {
+	sudo echo $(date)	$compname	:	"$1" >> "$logfilepath"
+}
+
+logInUEX4DebugMode () {
+	if [ $debug = true ] ; then	
+		logMessage="-DEBUG- $1"
+		logInUEX $logMessage
+	fi
+}
+
+log4_JSS () {
+	sudo echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
+}
 
 ##################################
 # 		Reboot Detections		 #
@@ -92,14 +122,20 @@ runBlocking=`ls /Library/Application\ Support/JAMF/UEX/block_jss/ | grep ".plist
 	
 	for i in "${blockPlists[@]}" ; do
 	# Run through the plists and check for app blocking requirements
-		name=`/usr/libexec/PlistBuddy -c "print name" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
-		packageName=`/usr/libexec/PlistBuddy -c "print packageName" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
-	
-		runDate=`/usr/libexec/PlistBuddy -c "print runDate" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
+		# name=`/usr/libexec/PlistBuddy -c "print name" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
+		# packageName=`/usr/libexec/PlistBuddy -c "print packageName" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
+		# apps=`/usr/libexec/PlistBuddy -c "print apps2block" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
+		# checks=`/usr/libexec/PlistBuddy -c "print checks" "/Library/Application Support/JAMF/UEX/block_jss/$i"`	
+		# runDate=`/usr/libexec/PlistBuddy -c "print runDate" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
+
+		name=$(fn_getPlistValue "name" "block_jss" "$i")
+		packageName=$(fn_getPlistValue "packageName" "block_jss" "$i")
+		apps=$(fn_getPlistValue "apps2block" "block_jss" "$i")
+		checks=$(fn_getPlistValue "checks" "block_jss" "$i"	)
+		runDate=$(fn_getPlistValue "runDate" "block_jss" "$i")
+
+
 		runDateFriendly=`date -r$runDate`
-		apps=`/usr/libexec/PlistBuddy -c "print apps2block" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
-		checks=`/usr/libexec/PlistBuddy -c "print checks" "/Library/Application Support/JAMF/UEX/block_jss/$i"`
-		
 		timeSinceReboot=$((lastReboot-runDate))
 		
 		##########################################################################################
@@ -189,7 +225,7 @@ runBlocking=`ls /Library/Application\ Support/JAMF/UEX/block_jss/ | grep ".plist
 appName=`echo $app | sed 's/.\{4\}$//'`
 
 # Use cocoaDialog so that it appears in front 
-"$CD" bubble \
+"$CocoaDialog" bubble \
 --title "$actioncap in progress..." --x-placement center --y-placement center \
 --text "The application ${appName} cannot be opened while the $action is still in progress.
 
@@ -197,9 +233,6 @@ Please wait for it to complete before attempting to open it." \
 	--icon-file "$icon" --icon-size 64 --independent --timeout 30
 
 
-# echo "/Library/Application Support/JAMF/UEX/scripts/cdforblock.sh" $name $app
-
-#     sleep 1
 ###############
 # MESSAGE END #
 ###############
@@ -212,23 +245,6 @@ Please wait for it to complete before attempting to open it." \
 done
 
 ##########################################################################################
-##			CLEANUP IF THERE ARE NO MORE APPLICATIONS THAT NEED TO BE BLOCKED			##
-##########################################################################################
-
-# Plist get cleaned by Postinstall script in the PKG once the installation is complete 
-# OR if the computer has restarted since the plist was created. 
-
-# moreblock=`ls /Library/Application\ Support/JAMF/UEX/block_jss/ | grep .plist`
-# if [[ $moreblock = "" ]] ; then 
-# 	# no more plists
-# 	
-# 	# stop the daemon to clear launchd
-# 	sudo launchctl unload -w /Library/LaunchDaemons/com.adidas-group.UEX-block2.0.plist  > /dev/null 2>&1
-# 	# Delete the daemon for cleanup
-# 	sudo rm /Library/LaunchDaemons/com.adidas-group.UEX-block2.0.plist  > /dev/null 2>&1
-# fi
-
-
 exit 0
 
 ##########################################################################################
@@ -240,27 +256,5 @@ exit 0
 # Sep 1, 2016 	v2.0	--DR--	Logging added
 # Sep 1, 2016 	v2.0	--DR--	Debug mode added
 # Sep 7, 2016 	v2.0	--DR--	Updated to clean up Application quitting and only target process from /$app/Contents/MacOS/
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
+# Apr 24, 2018 	v3.7	--DR--	Funtctions added
 # 
