@@ -27,7 +27,7 @@ If you want to update the title and icon in the PleaseWait.app open the project 
 * Build your project with your teamID/Cert 
 * Replace the PleaseWait.app that's in the payload
 * Set the owner:group to 'root:wheel' ```chown -R root:wheel $targetfile```
-* Set the RW mode to 755 ```chmod -R 755 $targetFile``
+* Set the RW mode to 755 ```chmod -R 755 $targetFile```
 * don't forget to make a new UEX resource package
 
 # How to upload to your jamf Pro server
