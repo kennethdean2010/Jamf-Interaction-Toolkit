@@ -4,7 +4,7 @@ I'll have a more comprehensive readme later
 
 You can uses this verison right off the bat for testing.
 
-Video from PDX MacAdmins Meetup: 
+Video from PDX MacAdmins Meetup: https://www.dropbox.com/s/a3w7vlxis6nair2/PDX%20MacAdmins%20meetup%20-%20Apr%202018%20-%20Very%20Compressed.mp4?dl=0
 PDF of Presentation: https://www.dropbox.com/s/i45csew68cri3cd/PDX%20MacAdmins%20meetup%20-%20Apr%202018.pdf?dl=0
 
 # Customized Branding
