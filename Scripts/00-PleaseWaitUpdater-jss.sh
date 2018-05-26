@@ -8,7 +8,7 @@
 # restarts and logouts
 # 
 # Name: PleaseWaitUpdater.sh
-# Version Number: 1.0
+# Version Number: 3.7
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas-group.com)
@@ -24,6 +24,19 @@ PleaseWaitApp="/Library/Application Support/JAMF/UEX/resources/PleaseWait.app"
 pleasewaitPhase="/private/tmp/com.pleasewait.phase"
 pleasewaitProgress="/private/tmp/com.pleasewait.progress"
 pleasewaitInstallProgress="/private/tmp/com.pleasewait.installprogress"
+
+##########################################################################################
+# 									Functions											 #
+##########################################################################################
+
+fn_getPlistValue () {
+	/usr/libexec/PlistBuddy -c "print $1" "$2"
+}
+
+
+##########################################################################################
+# 									Script Start										 #
+##########################################################################################
 
 sleep 10
 
@@ -43,9 +56,12 @@ installjss="/Library/Application Support/JAMF/UEX/install_jss/"
 		
 		# if there is a place holder for an install in progress
 		if [[ "$plist" == *"UEX/install"* ]] ;then		
-			name=`/usr/libexec/PlistBuddy -c "print name" "$plist"`
-			checks=`/usr/libexec/PlistBuddy -c "print checks" "$plist"`
-			
+			# name=`/usr/libexec/PlistBuddy -c "print name" "$plist"`
+			# checks=`/usr/libexec/PlistBuddy -c "print checks" "$plist"`
+
+			name=$(fn_getPlistValue "name" "$plist")
+			checks=$(fn_getPlistValue "checks" "$plist")
+
 			if [[ "$checks" == *"install"* ]] && [[ "$checks" != *"uninstall"* ]] ; then
 				action="install"
 				actioncap="Install"
@@ -78,8 +94,9 @@ installjss="/Library/Application Support/JAMF/UEX/install_jss/"
 	
 		# if the plist is a block plist then notify the user that the apps can't be opened 
 		if [[ "$plist" == *"UEX/block"* ]] ;then
-			apps=`/usr/libexec/PlistBuddy -c "print apps2block" "$plist"`
-		
+			# apps=`/usr/libexec/PlistBuddy -c "print apps2block" "$plist"`
+			apps=$(fn_getPlistValue "apps2block" "$plist")
+
 			# Create array of apps to run through checks
 			set -- "$apps" 
 			IFS=";"; declare -a apps=($*)  
@@ -104,9 +121,6 @@ installjss="/Library/Application Support/JAMF/UEX/install_jss/"
 				echo "after $action completes." > $pleasewaitProgress
 				sleep 5
 			fi
-# 			echo "Please wait..." > $pleasewaitPhase
-# 			echo "installation in progress." > $pleasewaitProgress
-# 			sleep 10
 		fi
 	
 	# 	if there are restart plist present then notify that a restart will be required
@@ -117,9 +131,6 @@ installjss="/Library/Application Support/JAMF/UEX/install_jss/"
 				echo "after $action completes." > $pleasewaitProgress
 				sleep 5
 			fi
-# 			echo "Please wait..." > $pleasewaitPhase
-# 			echo "installation in progress." > $pleasewaitProgress
-# 			sleep 10			
 		fi
 	done
 
@@ -131,29 +142,6 @@ done
 ##########################################################################################
 # 
 # 
-# v 1.0 - Stage 1 Delivered
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
+# Jan 18, 2016 	v1.0	--DR--	Stage 1 Delivered
+# Apr 24, 2018 	v3.7	--DR--	Funtctions added
 # 

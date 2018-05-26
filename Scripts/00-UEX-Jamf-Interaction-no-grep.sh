@@ -1,14 +1,28 @@
 #!/bin/sh
+loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
 
+##########################################################################################
+##								Paramaters for Branding									##
+##########################################################################################
 
+title="Your IT Deparment"
 
+#Jamf Pro 10 icon if you want another custom one then please update it here.
+customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIcon.icns"
+
+#if you you jamf Pro 10 to brand the image for you self sevice icon will be here
+SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
+
+##########################################################################################
+##########################################################################################
+##							Do not make any changes below								##
 ##########################################################################################
 ##########################################################################################
 # 
 # User experience Post installation script to be bundled with PKG.
 # 
-# Version Number: 3.5
-	uexvers=3.5
+# Version Number: 3.7
+	uexvers=3.7
 # 
 # Created Jan 18, 2016 by David Ramirez
 #
@@ -57,7 +71,6 @@ altpaths=(
 "/Library/Application Support/"
 "~/Library/Application Support/"
 )
-# altpaths=$7
 
 # Timed installation on a HDD based Mac
 # installDuration=5
@@ -84,13 +97,13 @@ customMessage=${11}
 
 
 # fordebugging
-# NameConsolidated="Google;Chrome;55.5;;"
-# checks="block debug ssavail"
-# apps="Google Chrome.app"
-# installDuration=10
-# maxdefer=3
-# packages=test.pkg
-# triggers=uexblocktest
+ # NameConsolidated="Extensis;Universal Type Client;6.1.5"
+ # checks="quit"
+ # apps="Universal Type Client.app;Adobe Photoshop CC 2015.app;Adobe Photoshop CC 2017.app;Adobe Illustrator.app;Adobe Photoshop CC 2014.app;Adobe InDesign CC 2014.app;Adobe InDesign CC 2015.app;Adobe InDesign CC 2017.app"
+ # installDuration=5
+ # maxdefer=3
+ # packages=aG-Extensis-UniversalTypeClient-6.1.5-OSX-EN-SR03395-1.0.pkg
+ # triggers=universaltypeclient
 
 
 ##########################################################################################
@@ -213,6 +226,25 @@ fn_waitForUserToLogout () {
 	fi
 }
 
+fn_getPlistValue () {
+	/usr/libexec/PlistBuddy -c "print $1" /Library/Application\ Support/JAMF/UEX/$2/"$3"
+}
+
+fn_addPlistValue () {
+	/usr/libexec/PlistBuddy -c "add $1 $2 ${3}" /Library/Application\ Support/JAMF/UEX/"$4"/"$5"
+
+	# log the values of the plist
+	logInUEX4DebugMode "Plist Details: $1 $2 $3"
+}
+
+fn_setPlistValue () {
+	/usr/libexec/PlistBuddy -c "set $1 ${2}" /Library/Application\ Support/JAMF/UEX/"$3"/"$4"
+
+	# log the values of the plist
+	logInUEX4DebugMode "Plist Details Updated: $1 $2 $3"
+
+}
+
 ##########################################################################################
 ##									SSD Calculations									##
 ##########################################################################################
@@ -277,21 +309,19 @@ pathToFolder=`dirname "$pathToPackage"`
 ##								STATIC VARIABLES FOR CD DIALOGS							##
 ##########################################################################################
 
-CD="/Library/Application Support/JAMF/UEX/resources/CocoaDialog.app/Contents/MacOS/CocoaDialog"
-sCocoaDialog_App="$CD"
+CocoaDialog="/Library/Application Support/JAMF/UEX/resources/CocoaDialog.app/Contents/MacOS/CocoaDialog"
+sCocoaDialog_App="$CocoaDialog"
 
 ##########################################################################################
 ##							STATIC VARIABLES FOR JH DIALOGS								##
 ##########################################################################################
 
 jhPath="/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper"
-title="adidas | Global IT"
 heading="${AppVendor} ${AppName}"
-icondir="/Library/Application Support/JAMF/UEX/resources/adidas_company_logo_BWr.png"
 
 #if the icon file doesn't exist then set to a standard icon
-if [ -e "$icondir" ] ; then
-	icon="$icondir"
+if [ -e "$customLogo" ] ; then
+	icon="$customLogo"
 else
 	icon="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns"
 fi
@@ -390,7 +420,7 @@ if [ "$suspackage" = true ] ; then
 if [ $selfservicePackage = true ] ; then	
 	status="Software Updates,
 checking for updates..."
-	"$CD" bubble --title "$title" --text "$status" --icon-file "$icon"	
+	"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"	
 fi # selfservice package
 
 	trigger set_sus_server
@@ -411,7 +441,7 @@ fi # selfservice package
 		if [ $selfservicePackage = true ] ; then	
 			status="Software Updates,
 No updates available."
-			"$CD" bubble --title "$title" --text "$status" --icon-file "$icon"
+			"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
 			sleep 5
 		fi # selfservice package
 		
@@ -421,7 +451,7 @@ No updates available."
 		if [ $selfservicePackage = true ] ; then	
 			status="Software Updates,
 Downloading updates."
-			"$CD" bubble --title "$title" --text "$status" --icon-file "$icon"
+			"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
 		fi # selfservice package
 		# pre download updates
 		sudo softwareupdate -d --all
@@ -454,13 +484,13 @@ Downloading updates."
 		if [[ "$updates" == *"Firmware"* ]] ; then
 			checks+=" power"
 			checks+=" restart"
-# 			echo contains Firmware Update
+			log4_JSS "contains Firmware Update"
 		fi
 
 		if [[ "$updates" == *"restart"* ]] ; then
 			checks+=" restart"
 			installDuration=5
-# 			echo requires restart
+			log4_JSS "requires restart"
 		fi
 		
 		if [[ "$updates" == *"iTunes"* ]] && [[ "$updates" == *"Safari"* ]] ; then
@@ -473,7 +503,7 @@ Downloading updates."
 		elif [[ "$updates" == *"Safari"* ]] ; then
 			checks+=" block"
 			apps+="Safari.app"
-			echo contains restart and safari updates
+			log4_JSS "contains restart and safari updates"
 		fi
 
 		if [[ "$checks" == "" ]] ;then
@@ -489,15 +519,13 @@ Downloading updates."
 
 		updatesfiltered=`cat $swulog | grep "*" -A 1 | grep -v "*" | awk -F ',' '{print $1}' | awk -F '\t' '{print $2}' | sed '/^\s*$/d'`
 
-		# echo $updates
-
 		set -- "$updatesfiltered" 
 		IFS="--"; declare -a updatesfiltered=($*)  
 		unset IFS
 
-		echo '**Updates Available**'
+		log4_JSS '**Updates Available**'
 
-		echo "${updatesfiltered[@]}" 
+		log4_JSS "${updatesfiltered[@]}" 
 	fi
 fi
 
@@ -561,20 +589,27 @@ debug=false
 #								RESOURCE LOADER											 #
 ##########################################################################################
 
+# only check for the self service icon image if the use is using a custom one
+if [[ "$SelfServiceIcon" != *"com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"* ]]; then
+	SelfServiceIconCheck="$SelfServiceIcon"
+fi
+
+# only check for the self service icon image if the use is using a custom one
+if [[ "$customLogo" != *"Jamf.app/Contents/Resources/AppIcon.icns"* ]]; then
+	customLogoCheck="$customLogo"
+fi
+
 resources=(
+"$customLogoCheck"
+"$SelfServiceIconCheck"
 "/Library/Application Support/JAMF/UEX/resources/cocoaDialog.app"
-"/Library/Application Support/JAMF/UEX/resources/adidas_company_logo_BWr.png"
 "/Library/Application Support/JAMF/UEX/resources/battery_white.png"
 "/Library/Application Support/JAMF/UEX/resources/PleaseWait.app"
-"/Library/Application Support/JAMF/UEX/resources/terminal-notifier.app"
-"/Library/Application Support/JAMF/UEX/resources/Self Service@2x.icns"
-"/Library/Application Support/JAMF/UEX/resources/Pashua.app"
 )
-
 for i in "${resources[@]}"; do
 	resourceName="$(echo "$i" | sed 's@.*/@@')"
 	pathToResource=`dirname "$i"`
-   if [[ ! -e "$i" ]]; then
+   if [[ ! -e "$i" ]] && [[ "$i" ]]; then
       # does not exist...
       missingResources=true
    fi
@@ -584,13 +619,12 @@ if [[ $missingResources = true ]] ; then
 	trigger uexresources
 fi
 
-icondir="/Library/Application Support/JAMF/UEX/resources/adidas_company_logo_BWr.png"
-woappsIcon="/Library/Application Support/JAMF/UEX/resources/Self Service@2x.icns"
+
 #if the icon file doesn't exist then set to a standard icon
-if [[ -e "$woappsIcon" ]]; then
-	icon="$woappsIcon"
-elif [ -e "$icondir" ] ; then
-	icon="$icondir"
+if [[ -e "$SelfServiceIcon" ]]; then
+	icon="$SelfServiceIcon"
+elif [ -e "$customLogo" ] ; then
+	icon="$customLogo"
 else
 	icon="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns"
 fi
@@ -744,14 +778,9 @@ check4Packages () {
 		pathtopkg="$waitingRoomDIR"
 		packageMissing=""
 		for PKG in "${packages[@]}"; do
-			wrappedPkg="$pathtopkg""$PKG"
-			# echo looking in "$wrappedPkg"
-			if [[ ! -e "$wrappedPkg" ]] ; then
-# 				"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
-# 			--informative-text "Error: The variable 'wrappedPkgName' is not set correctly. 
-# 	
-# 			Please check the spelling and package. It must contain the full file name and extension of the wrapped package installed to /private/tmp/.
-# 			package varaible is $PKG"
+			pkg2install="$pathtopkg""$PKG"
+			# echo looking in "$pkg2install"
+			if [[ ! -e "$pkg2install" ]] ; then
 				packageMissing=true
 				log4_JSS "The package $PKG could not be found"
 			fi
@@ -761,6 +790,20 @@ check4Packages () {
 			packageMissing=false
 		fi
 	fi
+}
+
+fn_generatateApps2quit () {
+	apps2quit=()
+	for app in "${apps[@]}" ; do
+		IFS=$'\n'
+		appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
+	# 	echo Processing application $app
+		if  [ "$appid" != "" ] ; then
+			apps2quit+=(${app})
+			log4_JSS "$app is stil running. Notifiying user"
+		fi
+	done
+	unset IFS
 }
 
 linkaddress="/Library/Logs/"
@@ -779,19 +822,17 @@ logInUEX4DebugMode "DEBUG MODE: ON"
 
 logInUEX "******* START UEX Detail ******"
 logInUEX "User Experience Version: $uexvers"
-logInUEX "$AppVendor=$AppVendor"
-logInUEX "$AppName=$AppName"
-logInUEX "$checks=$checks"
+logInUEX "AppVendor=$AppVendor"
+logInUEX "AppName=$AppName"
+logInUEX "checks=$checks"
 if [[ "$checks" == *"quit"* ]] || [[ "$checks" == *"block"* ]] ; then logInUEX "$apps=$apps2block" ; fi
-# logInUEX "$altpaths="${altpath[@]}"
-logInUEX "$maxdefer=$maxdefer"
-logInUEX "$type=$type"
-logInUEX "$reqs=$reqs"
-logInUEX "$packages=${package[@]}"
-logInUEX "$command=$command"
+logInUEX "altpaths=${altpaths[@]}"
+logInUEX "maxdefer=$maxdefer"
+logInUEX "packages=${packages[@]}"
+logInUEX "command=$command"
 logInUEX "******* END UEX Detail ******"
 
-logInUEX "******* script starte ******"
+logInUEX "******* script started ******"
 
 
 ##########################################################################################
@@ -800,7 +841,7 @@ logInUEX "******* script starte ******"
 
 
 if [[ ! -e "$jamfBinary" ]] ; then 
-warningmsg=`"$CD" ok-msgbox --icon caution --title "$title" --text "Error" \
+warningmsg=`"$CocoaDialog" ok-msgbox --icon caution --title "$title" --text "Error" \
     --informative-text "There is Scheduled $action being attempted but the computer doesn't have JAMF Management software installed correctly. Please contact the service desk for support." \
     --float --no-cancel`
     badvariable=true
@@ -809,14 +850,14 @@ fi
 
 jamfhelper="/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper"
 if [[ ! -e "$jamfhelper" ]] ; then 
-warningmsg=`"$CD" ok-msgbox --icon caution --title "$title" --text "Error" \
+warningmsg=`"$CocoaDialog" ok-msgbox --icon caution --title "$title" --text "Error" \
     --informative-text "There is Scheduled $action being attempted but the computer doesn't have JAMF Management software installed correctly. Please contact the service desk for support." \
     --float --no-cancel`
     badvariable=true
     logInUEX "ERROR: jamfHelper not found"
 fi
 
-if [[ ! -e "$CD" ]] ; then 
+if [[ ! -e "$CocoaDialog" ]] ; then 
 "$jhPath" -windowType hud -windowPostion center -button1 OK -title Warning -description "cocoaDialog is not in the resources folder" -icon "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns"
 badvariable=true
 logInUEX "ERROR: cocoDialog not found"
@@ -842,7 +883,7 @@ fi
 
 
 if [[ -z $AppVendor ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'AppVendor' is blank"
 	badvariable=true
 	logInUEX "ERROR: The variable 'AppVendor' is blank"
@@ -850,7 +891,7 @@ if [[ -z $AppVendor ]] ; then
 fi
 ##########################################################################################
 if [[ -z $AppName ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'AppName' is blank"
 	badvariable=true
 	logInUEX "ERROR: The variable 'AppName' is blank"
@@ -858,7 +899,7 @@ if [[ -z $AppName ]] ; then
 fi
 ##########################################################################################
 if [[ -z $AppVersion ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'AppVersion' is blank"
 	badvariable=true
 	logInUEX "ERROR: The variable 'AppVersion' is blank"
@@ -866,28 +907,19 @@ if [[ -z $AppVersion ]] ; then
 fi
 
 ##########################################################################################
-if [[ "$checks" != *"quit"* ]] && [[ "$checks" != *"block"* ]] && [[ "$checks" != *"logout"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"notify"* ]] && [[ "$checks" != *"custom"* ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+if [[ "$checks" != *"quit"* ]] && [[ "$checks" != *"block"* ]] && [[ "$checks" != *"logout"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"notify"* ]] && [[ "$checks" != *"custom"* ]] && [[ "$checks" != *"saveallwork"* ]] ; then
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'checks' is not set correctly. 
 	
-It must be set to 'quit' or 'block' or 'logout' or 'restart'."
+It must be set to 'quit' or 'block' or 'logout' or 'restart' or 'notify' or 'saveallwork' or 'suspackage'."
 	badvariable=true
 	logInUEX "ERROR: The variable 'checks' is not set correctly."
-fi
-##########################################################################################
-if [[ "$reqs" != "" ]] && [[ "$reqs" != "power" ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
-    --informative-text "Error: The variable 'reqs' is not set correctly. 
-	
-It must be set to '""' or '"power"'."
-	badvariable=true
-	logInUEX "ERROR: The variable 'reqs' is not set correctly."
 fi
 ##########################################################################################
 for app in "${apps[@]}" ; do
 
 	if [[ "$checks" == *"quit"* ]] && [[ "$app" != *".app" ]]; then
-		"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+		"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
 		--informative-text "Error: The variable, ${app}, in 'apps' is not set correctly. 
 	
 	It must contain the file name for the applicaiton. ie 'Safari.app'."
@@ -896,7 +928,7 @@ for app in "${apps[@]}" ; do
 	fi
 	##########################################################################################
 	if [[ "$checks" == *"block"* ]] && [[ "$app" != *".app" ]]; then
-		"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+		"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
 		--informative-text "Error: The variable, ${app}, in 'apps' is not set correctly. 
 	
 	It must contain the file name for the applicaiton. ie 'Safari.app'."
@@ -906,7 +938,7 @@ for app in "${apps[@]}" ; do
 done
 ##########################################################################################
 if [[ -z $installDuration ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'installDuration' is not set correctly. 
 	
 It must be an integer greater than 0."
@@ -915,10 +947,10 @@ It must be an integer greater than 0."
 fi
 ##########################################################################################
 if [[ -z $maxdefer ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'maxdefer' is not set correctly. 
 	
-It must be an integer greater than 0."
+It must be an integer greater or equal to 0."
 	badvariable=true
 	logInUEX "ERROR: The variable 'maxdefer' is not set correctly."
 fi
@@ -926,7 +958,7 @@ fi
 if [[ $installDuration =~ ^-?[0-9]+$ ]] ; then 
 	echo integer > /dev/null 2>&1 &
 else
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'installDuration' is not set correctly. 
 	
 It must be an integer greater than 0."
@@ -937,16 +969,16 @@ fi
 if [[ $maxdefer =~ ^-?[0-9]+$ ]] ; then 
 	echo integer > /dev/null 2>&1 &
 else
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'maxdefer' is not set correctly. 
 	
-It must be an integer greater than 0."
+It must be an integer greater or equal to 0."
 	badvariable=true
 	logInUEX "ERROR: The variable 'maxdefer' is not set correctly."
 fi
 ##########################################################################################
 if [[ "$apps2block" == *";"* ]] && [[ "$apps2block" == *"; "* ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'apps' is not set correctly. 
 	
 Application names must be sepratated by ';' but cannot contain spaces before or after the ';'."
@@ -955,7 +987,7 @@ Application names must be sepratated by ';' but cannot contain spaces before or 
 fi
 ##########################################################################################
 if [[ "$apps2block" == *";"* ]] && [[ "$apps2block" == *" ;"* ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'apps' is not set correctly. 
 	
 Application names must be sepratated by ';' but cannot contain spaces before or after the ';'."
@@ -973,7 +1005,7 @@ fi
 if [ $debug != true ] ; then
 ##########################################################################################
 
-	if [ ! -e "$CD" ] ; then
+	if [ ! -e "$CocoaDialog" ] ; then
 		failedInstall=true
 	fi
 ##########################################################################################
@@ -982,7 +1014,7 @@ if [ $debug != true ] ; then
 
 ##########################################################################################	
 if [[ "$AppVendor" == *"AppVendor"* ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'AppVendor' is not set correctly. 
 	
 Please update it from the default."
@@ -991,7 +1023,7 @@ Please update it from the default."
 fi
 ##########################################################################################
 if [[ "$AppName" == *"AppName"* ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'AppName' is not set correctly. 
 	
 Please update it from the default."
@@ -1001,7 +1033,7 @@ Please update it from the default."
 fi
 ##########################################################################################
 if [[ "$AppVersion" == *"AppVersion"* ]] ; then
-	"$CD" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'AppVersion' is not set correctly. 
 	
 Please update it from the default."
@@ -1064,14 +1096,16 @@ pleasewaitInstallProgress="/private/tmp/com.pleasewait.installprogress"
 
 Laptop=`system_profiler SPHardwareDataType | grep -E "MacBook"`
 VmTest=`ioreg -l | grep -e Manufacturer -e 'Vendor Name' | grep 'Parallels\|VMware\|Oracle\|VirtualBox' | grep -v IOAudioDeviceManufacturerName`
-if [ "$VmTest" ] ; then Laptop="MacBook" ; fi
+if [ "$VmTest" ] ; then 
+	Laptop="MacBook" 
+fi
 BatteryTest=`pmset -g batt`
 
-baticondir="/Library/Application Support/JAMF/UEX/resources/battery_white.png"
+batteryCustomIcon="/Library/Application Support/JAMF/UEX/resources/battery_white.png"
 
 #if the icon file doesn't exist then set to a standard icon
-if [ -e "$baticondir" ] ; then
-	baticon="$baticondir"
+if [ -e "$batteryCustomIcon" ] ; then
+	baticon="$batteryCustomIcon"
 else
 	baticon="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns"
 fi
@@ -1079,12 +1113,11 @@ fi
 if [[ "$BatteryTest" =~ "AC" ]] ; then
 	#on AC power
 	power=true
-	logInUEX "Computer on AC power"
-
+	log4_JSS "Computer on AC power"
 else
 	#on battery power
 	power=false
-	logInUEX "Computer on battery power"
+	log4_JSS "Computer on battery power"
 
 fi
 
@@ -1154,11 +1187,10 @@ fi
 
 
 ##########################################################################################
-##							Pre-Processing Paramaters (WrappedPKG)						##
+##							Pre-Processing Paramaters (pkg2install)						##
 ##########################################################################################
 
 pathtopkg="$waitingRoomDIR"
-# wrappedPkg="$pathtopkg""$wrappedPkgName"
 
 # Notes
 # The Variable for the whole list of applications is ${apps[@]}
@@ -1182,16 +1214,7 @@ fi
 ##########################################################################################
 
 #Generate list of apps that are running that need to be quit
-apps2quit=()
-for app in "${apps[@]}" ; do
-	IFS=$'\n'
-	appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
-# 	echo Processing application $app
-	if  [ "$appid" != "" ] ; then
-		apps2quit+=(${app})
-	fi
-done
-unset IFS
+fn_generatateApps2quit
 
 # Create dialog list with each item on a new line for the dialog windows
 # If the list is too long then put two on a line separated by ||
@@ -1238,7 +1261,8 @@ fi
 #get the delay number form the plist or set it to zero
 
 if [ -e /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist ] ; then 
-	delayNumber=`/usr/libexec/PlistBuddy -c "print delayNumber" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
+	# delayNumber=`/usr/libexec/PlistBuddy -c "print delayNumber" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
+	delayNumber=$(fn_getPlistValue "delayNumber" "defer_jss" "$packageName.plist")
 else
 	delayNumber=0
 fi
@@ -1387,9 +1411,8 @@ PostponeMsg+="
 				
 "
 
-woappsIcon="/Library/Application Support/JAMF/UEX/resources/Self Service@2x.icns"
-if [[ -e "$woappsIcon" ]]; then
-	ssicon="$woappsIcon"
+if [[ -e "$SelfServiceIcon" ]]; then
+	ssicon="$SelfServiceIcon"
 else
 	ssicon="/Applications/Self Service.app/Contents/Resources/Self Service.icns"
 fi
@@ -1474,9 +1497,14 @@ PostponeClickResult=""
 skipNotices="false"
 
 if [ -e /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist ] ; then 
-	delayNumber=`/usr/libexec/PlistBuddy -c "print delayNumber" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
-	presentationDelayNumber=`/usr/libexec/PlistBuddy -c "print presentationDelayNumber" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
-	inactivityDelay=`/usr/libexec/PlistBuddy -c "print inactivityDelay" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
+	# delayNumber=`/usr/libexec/PlistBuddy -c "print delayNumber" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
+	# presentationDelayNumber=`/usr/libexec/PlistBuddy -c "print presentationDelayNumber" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
+	# inactivityDelay=`/usr/libexec/PlistBuddy -c "print inactivityDelay" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
+	
+	delayNumber=$(fn_getPlistValue "delayNumber" "defer_jss" "$packageName.plist")
+	presentationDelayNumber=$(fn_getPlistValue "presentationDelayNumber" "defer_jss" "$packageName.plist")
+	inactivityDelay=$(fn_getPlistValue "inactivityDelay" "defer_jss" "$packageName.plist")
+
 else
 	delayNumber=0
 	presentationDelayNumber=0
@@ -1710,17 +1738,7 @@ while [ $reqlooper = 1 ] ; do
 	##									ARE YOU SURE SAFTEY NET								##
 	##########################################################################################
 	#Generate list of apps that are running that need to be quit
-	apps2quit=()
-	for app in "${apps[@]}" ; do
-		IFS=$'\n'
-		appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
-	# 	echo Processing application $app
-		if  [ "$appid" != "" ] ; then
-			apps2quit+=(${app})
-			log4_JSS "$app is stil running. Notifiying user"
-		fi
-	done
-	unset IFS
+	fn_generatateApps2quit
 
 	apps4dialogquit=$( IFS=$'\n'; printf '%-25s\t%-25s\n' $( echo "${apps2quit[*]}" | sed 's/.\{4\}$//') )
 
@@ -1741,24 +1759,28 @@ $apps4dialogquit
 Current work may be lost if you do not save before proceeding."
 
 	areYouSure=""
-	if [[ "$apps2quit" == *".app"* ]] && [ -z $PostponeClickResult ] && [ "$skipOver" != true ] || [[ "$checks" == *"saveallwork"* ]] && [ "$skipOver" != true ] && [ -z $PostponeClickResult ] ; then
-		if [[ $checks == *"critical"* ]] || [[ $delayNumber -ge $maxdefer ]] ; then
-			areYouSure=$( "$jhPath" -windowType hud -lockHUD -icon "$icon" -title "$title" -heading "$areyousureHeading" -description "$areyousureMessage" -button1 "Continue" -timeout 300 -countdown)
-		else
-			areYouSure=$( "$jhPath" -windowType hud -lockHUD -icon "$icon" -title "$title" -heading "$areyousureHeading" -description "$areyousureMessage" -button1 "Continue" -button2 "Go Back" -timeout 600 -countdown)
-		fi
-
-		# log4_JSS "areYouSure Button result was: $areYouSure"
-		if [[ "$areYouSure" = "2" ]] ; then
-			reqlooper=1
-			skipOver=true
-		else
-			reqlooper=0
-			if [ $areYouSure = 2 ] ; then 
-				log4_JSS "User Clicked continue."
+	logInUEX "skipNotices is $skipNotices"
+	if [ "$skipNotices" != true ] ; then
+		if [[ "$apps2quit" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$checks" == *"saveallwork"* ]] && [ -z $PostponeClickResult ] ; then
+			if [[ $checks == *"critical"* ]] || [[ $delayNumber -ge $maxdefer ]] ; then
+				areYouSure=$( "$jhPath" -windowType hud -lockHUD -icon "$icon" -title "$title" -heading "$areyousureHeading" -description "$areyousureMessage" -button1 "Continue" -timeout 300 -countdown)
+			else
+				areYouSure=$( "$jhPath" -windowType hud -lockHUD -icon "$icon" -title "$title" -heading "$areyousureHeading" -description "$areyousureMessage" -button1 "Continue" -button2 "Go Back" -timeout 600 -countdown)
 			fi
-		fi
-	fi # ARE YOU SURE? if apps are still running 
+
+			# log4_JSS "areYouSure Button result was: $areYouSure"
+			if [[ "$areYouSure" = "2" ]] ; then
+				reqlooper=1
+	
+				skipOver=true
+			else
+				reqlooper=0
+				if [ $areYouSure = 2 ] ; then 
+					log4_JSS "User Clicked continue."
+				fi
+			fi
+		fi # ARE YOU SURE? if apps are still running 
+	fi #SkipOver is not true
 
 
 	##########################################################################################
@@ -1825,7 +1847,8 @@ else # loginuser is null therefore no one is logged in and
 	logInUEX "No one is logged in"
 	if [[ -a /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist ]] ; then
 		echo delay exists
-		installNow=`/usr/libexec/PlistBuddy -c "print loginscreeninstall" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
+		# installNow=`/usr/libexec/PlistBuddy -c "print loginscreeninstall" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
+		installNow=$(fn_getPlistValue "loginscreeninstall" "defer_jss" "$packageName.plist")
 		echo $installNow
 		if [[ $installNow == "true" ]] ; then 
 			log4_JSS "Install at login permitted"
@@ -1925,40 +1948,63 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 		
 		if [[ -a /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist ]] ; then
 		# Create Plist with postpone properties 
-			sudo /usr/libexec/PlistBuddy -c "set package ${packageName}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set folder ${deferpackages}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set delayDate ${delayDate}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set delayDateFriendly ${delayDateFriendly}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set delayNumber ${delayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set presentationDelayNumber ${presentationDelayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set inactivityDelay ${inactivityDelay}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set loginscreeninstall ${loginscreeninstall}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set policyTrigger ${UEXpolicyTrigger}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set checks ${checks}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set package ${packageName}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set folder ${deferpackages}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set delayDate ${delayDate}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set delayDateFriendly ${delayDateFriendly}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set delayNumber ${delayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set presentationDelayNumber ${presentationDelayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set inactivityDelay ${inactivityDelay}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set loginscreeninstall ${loginscreeninstall}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set policyTrigger ${UEXpolicyTrigger}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set checks ${checks}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+
+			fn_setPlistValue "package" "$packageName" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "folder" "$deferpackages" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "delayDate" "$delayDate" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "delayDateFriendly" "$delayDateFriendly" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "delayNumber" "$delayNumber" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "presentationDelayNumber" "$presentationDelayNumber" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "inactivityDelay" "$inactivityDelay" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "loginscreeninstall" "$loginscreeninstall" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "policyTrigger" "$UEXpolicyTrigger" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "checks" "$checks" "defer_jss" "$packageName.plist"
+
 		else
 			# Create Plist with postpone properties 
-			sudo /usr/libexec/PlistBuddy -c "add package string ${packageName}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add folder string ${deferpackages}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add delayDate string ${delayDate}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add delayDateFriendly string ${delayDateFriendly}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add delayNumber string ${delayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add presentationDelayNumber string ${presentationDelayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add inactivityDelay string ${inactivityDelay}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add loginscreeninstall string ${loginscreeninstall}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add policyTrigger string ${UEXpolicyTrigger}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add package string ${packageName}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add folder string ${deferpackages}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add delayDate string ${delayDate}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add delayDateFriendly string ${delayDateFriendly}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add delayNumber string ${delayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add presentationDelayNumber string ${presentationDelayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add inactivityDelay string ${inactivityDelay}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add loginscreeninstall string ${loginscreeninstall}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add policyTrigger string ${UEXpolicyTrigger}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
+
+			fn_addPlistValue "package" "string" "$packageName" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "folder" "string" "$deferpackages" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "delayDate" "string" "$delayDate" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "delayDateFriendly" "string" "$delayDateFriendly" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "delayNumber" "string" "$delayNumber" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "presentationDelayNumber" "string" "$presentationDelayNumber" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "inactivityDelay" "string" "$inactivityDelay" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "loginscreeninstall" "string" "$loginscreeninstall" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "policyTrigger" "string" "$UEXpolicyTrigger" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "checks" "string" "$checks" "defer_jss" "$packageName.plist"
 		fi
 		
 		
 	
-		logInUEX4DebugMode "Plist Details: package string ${packageName}"
-		logInUEX4DebugMode "Plist Details: folder string ${deferpackages}"
-		logInUEX4DebugMode "Plist Details: folder string ${deferpackages}"
-		logInUEX4DebugMode "Plist Details: delayDate string ${delayDate}"
-		logInUEX4DebugMode "Plist Details: delayDateFriendly string ${delayDateFriendly}"
-		logInUEX4DebugMode "Plist Details: delayNumber string ${delayNumber}"
-		logInUEX4DebugMode "Plist Details: policyTrigger string ${UEXpolicyTrigger}"
-		logInUEX4DebugMode "Plist Details: checks string ${checks}"
+		# logInUEX4DebugMode "Plist Details: package string ${packageName}"
+		# logInUEX4DebugMode "Plist Details: folder string ${deferpackages}"
+		# logInUEX4DebugMode "Plist Details: folder string ${deferpackages}"
+		# logInUEX4DebugMode "Plist Details: delayDate string ${delayDate}"
+		# logInUEX4DebugMode "Plist Details: delayDateFriendly string ${delayDateFriendly}"
+		# logInUEX4DebugMode "Plist Details: delayNumber string ${delayNumber}"
+		# logInUEX4DebugMode "Plist Details: policyTrigger string ${UEXpolicyTrigger}"
+		# logInUEX4DebugMode "Plist Details: checks string ${checks}"
 	
 
 	fi
@@ -1990,7 +2036,7 @@ logInUEX "Starting the installation stage."
 	if [[ $packageMissing = true ]] && [[ $selfservicePackage = true ]]; then
 		status="$heading,
 Downloading packages..."
-		"$CD" bubble --title "$title" --text "$status" --icon-file "$icon"
+		"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
 
 		trigger $UEXcachingTrigger
 
@@ -2009,7 +2055,7 @@ Downloading packages..."
 		status="$heading,
 starting $action..."
 		if [ "$loggedInUser" ] ; then 
-			"$CD" bubble --title "$title" --text "$status" --icon-file "$icon"
+			"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
 		else
 			"$jhPath" -icon "$icon" -windowType hud -windowPosition lr -startlaunchd -title "$title" -description "$status" -timeout 5 > /dev/null 2>&1 
 		fi
@@ -2074,18 +2120,11 @@ fi # no on logged in
 	if [[ "$checks" == *"quit"* ]] ; then
 	# Quit all the apps2quit that were running at the time of the notifcation 
 		
-		apps2quit=()
-		for app in "${apps[@]}" ; do
-			IFS=$'\n'
-			appid=`ps aux | grep ${app} | grep -v grep | grep -v jamf | awk {'print $2'}`
-		# 	echo Processing application $app
-			if  [ "$appid" != "" ] ; then
-				apps2quit+=(${app})
-			fi
-		done
-		unset IFS
+		# Generate the list of apps still running that need to
+		fn_generatateApps2quit
 
 		if [[ $apps2quit != "" ]] ; then
+			apps2Relaunch=()
 			for app in "${apps2quit[@]}" ; do
 				IFS=$'\n'
 				appid=`ps aux | grep "$app"/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
@@ -2095,6 +2134,7 @@ fi # no on logged in
 							# Application  $app is still running.
 							# Killing $app. pid is $id 
 							log4_JSS "$app is still running. Quitting app."
+							apps2Relaunch+=($app)
 							kill $id
 						done 
 					fi
@@ -2130,19 +2170,26 @@ fi # no on logged in
 		
 		# Create Plist with all that properties to block the apps
 		# added Package & date info for restar safety measures
-		sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		sudo /usr/libexec/PlistBuddy -c "add apps2block string ${apps2block}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
+		# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
+		# sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
+		# sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
+		# sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
+		# sudo /usr/libexec/PlistBuddy -c "add apps2block string ${apps2block}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
+		# sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
 
-		logInUEX4DebugMode "Plist Details: name string ${heading}"
-		logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
-		logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
-		logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
-		logInUEX4DebugMode "Plist Details: apps2block string ${apps2block}"
-		logInUEX4DebugMode "Plist Details: checks string ${checks}"
+		fn_addPlistValue "name" "string" "$heading" "block_jss" "$packageName.plist"
+		fn_addPlistValue "packageName" "string" "$packageName" "block_jss" "$packageName.plist"
+		fn_addPlistValue "runDate" "string" "$runDate" "block_jss" "$packageName.plist"
+		fn_addPlistValue "runDateFriendly" "string" "$runDateFriendly" "block_jss" "$packageName.plist"
+		fn_addPlistValue "apps2block" "string" "$apps2block" "block_jss" "$packageName.plist"
+		fn_addPlistValue "checks" "string" "$checks" "block_jss" "$packageName.plist"
+
+		# logInUEX4DebugMode "Plist Details: name string ${heading}"
+		# logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
+		# logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
+		# logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
+		# logInUEX4DebugMode "Plist Details: apps2block string ${apps2block}"
+		# logInUEX4DebugMode "Plist Details: checks string ${checks}"
 
 		# Start the agent to actively block the applications
 		logInUEX "Starting Blocking Service"
@@ -2172,28 +2219,44 @@ fi # no on logged in
 		# added checked variable to allow for clearring the plist so that the second stage can change it then delete it.
 		
 		if [[ -a /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist ]] ; then
-			sudo /usr/libexec/PlistBuddy -c "set name ${heading}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set packageName ${packageName}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set runDate ${runDate}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set runDateFriendly ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set loggedInUser ${loggedInUser}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set checked false" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set name ${heading}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set packageName ${packageName}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set runDate ${runDate}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set runDateFriendly ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set loggedInUser ${loggedInUser}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set checked false" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+
+			fn_setPlistValue "name" "$heading" "logout_jss" "$packageName.plist"
+			fn_setPlistValue "packageName" "$packageName" "logout_jss" "$packageName.plist"
+			fn_setPlistValue "runDate" "$runDate" "logout_jss" "$packageName.plist"
+			fn_setPlistValue "runDateFriendly" "$runDateFriendly" "logout_jss" "$packageName.plist"
+			fn_setPlistValue "loggedInUser" "$loggedInUser" "logout_jss" "$packageName.plist"
+			fn_setPlistValue "checked" "false" "logout_jss" "$packageName.plist"
 
 		else
-			sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add loggedInUser string ${loggedInUser}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add checked bool false" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add loggedInUser string ${loggedInUser}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add checked bool false" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
+
+			fn_addPlistValue "name" "string" "$heading" "logout_jss" "$packageName.plist"
+			fn_addPlistValue "packageName" "string" "$packageName" "logout_jss" "$packageName.plist"
+			fn_addPlistValue "runDate" "string" "$runDate" "logout_jss" "$packageName.plist"
+			fn_addPlistValue "runDateFriendly" "string" "$runDateFriendly" "logout_jss" "$packageName.plist"
+			fn_addPlistValue "loggedInUser" "string" "$loggedInUser" "logout_jss" "$packageName.plist"
+			fn_addPlistValue "checked" "bool" "false" "logout_jss" "$packageName.plist"
+
+
 		fi
 		
-		logInUEX4DebugMode "Plist Details: name string ${heading}"
-		logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
-		logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
-		logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
-		logInUEX4DebugMode "Plist Details: loggedInUser string ${loggedInUser}"
-		logInUEX4DebugMode "Plist Details: checked bool false"
+		# logInUEX4DebugMode "Plist Details: name string ${heading}"
+		# logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
+		# logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
+		# logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
+		# logInUEX4DebugMode "Plist Details: loggedInUser string ${loggedInUser}"
+		# logInUEX4DebugMode "Plist Details: checked bool false"
 
 
 	fi
@@ -2210,20 +2273,32 @@ fi # no on logged in
 		# Create plist with Restart required
 		# Added date to allow for clearing and fail safe in case the user restart manually
 		if [[ -a /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist ]] ; then
-			sudo /usr/libexec/PlistBuddy -c "set name ${heading}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set packageName ${packageName}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set runDate ${runDate}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "set runDateFriendly ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set name ${heading}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set packageName ${packageName}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set runDate ${runDate}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "set runDateFriendly ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+		
+			fn_setPlistValue "name" "$heading" "restart_jss" "$packageName.plist"
+			fn_setPlistValue "packageName" "$packageName" "restart_jss" "$packageName.plist"
+			fn_setPlistValue "runDate" "$runDate" "restart_jss" "$packageName.plist"
+			fn_setPlistValue "runDateFriendly" "$runDateFriendly" "restart_jss" "$packageName.plist"
+
 		else
-			sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+			# sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
+
+			fn_addPlistValue "name" "string" "$heading" "restart_jss" "$packageName.plist"
+			fn_addPlistValue "packageName" "string" "$packageName" "restart_jss" "$packageName.plist"
+			fn_addPlistValue "runDate" "string" "$runDate" "restart_jss" "$packageName.plist"
+			fn_addPlistValue "runDateFriendly" "string" "$runDateFriendly" "restart_jss" "$packageName.plist"
 		fi
-		logInUEX4DebugMode "Plist Details: name string ${heading}"
-		logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
-		logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
-		logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
+
+		# logInUEX4DebugMode "Plist Details: name string ${heading}"
+		# logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
+		# logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
+		# logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
 
 
 	fi
@@ -2327,8 +2402,11 @@ EOT
 	sudo /bin/rm "$installJSSfolder"*
 	
 	# Install notification Place holder
-	sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
-	sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
+	# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
+	# sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
+
+	fn_addPlistValue "name" "string" "$heading" "install_jss" "$packageName.plist"
+	fn_addPlistValue "checks" "string" "$checks" "install_jss" "$packageName.plist"
 	
 	if [ "$suspackage" = true ] ; then
 		#sus version 
@@ -2352,7 +2430,7 @@ EOT
 		# Go through list of packages and install them one by one
 		for PKG in "${packages[@]}"; do
 			pathtopkg="$waitingRoomDIR"
-			wrappedPkg="$pathtopkg""$PKG"
+			pkg2install="$pathtopkg""$PKG"
 	
 			logInUEX "Starting Install"
 			
@@ -2364,6 +2442,9 @@ EOT
 			else
 				sudo "$jamfBinary" install -package "$PKG" -path "$pathtopkg" -target / | /usr/bin/tee -a "$resultlogfilepath"
 			fi
+
+			#Debug Line
+			echo exit code for installer is $?
 			
 			installResults=`cat "$resultlogfilepath" | tr '[:upper:]' '[:lower:]'`
 			if 	[[ "$installResults" == *"failed"* ]] || [[ "$installResults" == *"error"* ]] ; then
@@ -2373,11 +2454,11 @@ EOT
 			sudo echo $(date)	$compname	:	RESULT: $(cat "$resultlogfilepath") >> "$logfilepath"
 	
 			logInUEX "Install Completed"
-			# Deleting the wrapped package from temp directory
+			# Deleting the package from temp directory
 			if [[ $type == "package" ]] ; then
-				logInUEX "Deleting the wrapped package from temp directory"
+				logInUEX "Deleting the package from temp directory"
 				logInUEX "Deleting $PKG"
-				sudo /bin/rm "$wrappedPkg" >& "$resultlogfilepath"
+				sudo /bin/rm "$pkg2install" >& "$resultlogfilepath"
 				sudo echo $(date)	$compname	:	RESULT: $(cat "$resultlogfilepath") >> "$logfilepath"
 			fi
 		done
@@ -2419,8 +2500,8 @@ EOT
 	plists=`ls /Library/Application\ Support/JAMF/UEX/defer_jss/ | grep ".plist"`
 	IFS=$'\n'
 	for i in $plists ; do
-		deferPolicyTrigger=`/usr/libexec/PlistBuddy -c "print policyTrigger" /Library/Application\ Support/JAMF/UEX/defer_jss/"$i"`
-
+		# deferPolicyTrigger=`/usr/libexec/PlistBuddy -c "print policyTrigger" /Library/Application\ Support/JAMF/UEX/defer_jss/"$i"`
+		deferPolicyTrigger=$(fn_getPlistValue "policyTrigger" "defer_jss" "$i")
 		if [[ "$deferPolicyTrigger" == "$UEXpolicyTrigger" ]]; then
 			log4_JSS "Deleting $i"
 			sudo /bin/rm /Library/Application\ Support/JAMF/UEX/defer_jss/"$i" > /dev/null 2>&1
@@ -2431,6 +2512,11 @@ EOT
 ##########################################################################################
 ##								POST INSTALL ACTIONS									##
 ##########################################################################################
+
+
+
+
+
 
 	#####################
 	# Stop Progress Bar #
@@ -2475,13 +2561,39 @@ EOT
 		status="$heading,
 $action completed."
 		if [ "$loggedInUser" ] ; then 
-			"$CD" bubble --title "$title" --text "$status" --icon-file "$icon"
+			"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
 		else
 			"$jhPath" -icon "$icon" -windowType hud -windowPosition lr -startlaunchd -title "$title" -description "$status" -timeout 5 > /dev/null 2>&1 
 		fi
 		logInUEX "Notified user $heading, Completed"
 
 	fi
+
+	#####################
+	# reopen apps      #
+	#####################
+	# keeping beta until ready
+	# if [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]]; then
+	# 	for relaunchAppName in "${apps2Relaunch[@]}" ; do 
+	# 		app2Open=""
+	# 		appFound=""
+	# 		userAppFound=""
+	# 		# Find the apss in /Applications/ and ~/Applications/ and open as the user
+	# 		appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$relaunchAppName"`
+	# 		userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$relaunchAppName"`
+			
+	# 		if [[ "$appFound" ]]; then
+	# 			app2Open="$appFound"
+	# 		elif [[ "$userAppFound" ]]; then
+	# 			app2Open="$userAppFound"
+	# 		fi
+
+	# 		if [[ "$app2Open" ]] ;then
+	# 			sudo -u "$loggedInUser" -H open "$app2Open"
+	# 		fi
+	# 	done
+	# fi
+	
 	
 	#####################
 	# 		Block	 	#
@@ -2543,8 +2655,8 @@ else
 	# Go through list of packages and delete them one by one
 	for PKG in "${packages[@]}"; do
 		pathtopkg="$waitingRoomDIR"
-		wrappedPkg="$pathtopkg""$PKG"
-		# sudo /bin/rm "$wrappedPkg" > /dev/null 2>&1
+		pkg2install="$pathtopkg""$PKG"
+		# sudo /bin/rm "$pkg2install" > /dev/null 2>&1
 	done
 		
 # 	if [ debug != true ] ; then
@@ -2621,17 +2733,6 @@ fi
 # Feb 08, 2018	v3.5	--DR--	added macosupgrade and elements for lock and saveallwork, & loginwindow
 # Feb 08, 2018	v3.5	--DR--	fixed elements where pollies run at loginwidow if notify is specified
 # Feb 08, 2018	v3.5	--DR--	added countdown to are you sure
-# Feb 08, 2018	v3.5	--DR--	added deferal clears all pospones by the trigger name instead to prevent repeated runs
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
+# Mar 26, 2018	v3.5	--DR--	added deferal clears all pospones by the trigger name instead to prevent repeated runs
+# Apr 24, 2018 	v3.7	--DR--	Funtctions added for plist processing
 # 
