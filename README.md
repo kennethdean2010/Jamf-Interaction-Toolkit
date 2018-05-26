@@ -4,9 +4,12 @@ I'll have a more pmprehensive readme later
 
 You can uses this verison right off the bat for testing.
 
+Video from PDX MacAdmins Meetup: 
+PDF of Presentation: https://www.dropbox.com/s/i45csew68cri3cd/PDX%20MacAdmins%20meetup%20-%20Apr%202018.pdf?dl=0
+
 # Customized Branding
 
-Update the "title" and any desired icon files in the following scripts
+Update the "title" and any desired icon paths in the following scripts
     00-UEX-Jamf-Interaction-no-grep.sh
     00-uexblockagent-jss.sh
     00-uexlogoutagent-jss.sh
@@ -37,3 +40,4 @@ If you want to update the title and icon in the PleaseWait.app open the project 
 6) Run the script 
 
 # More coming soon on paramters and use cases  and imagery and "all that Jazz"
+
