@@ -1,6 +1,6 @@
 # Jamf-Interaction-Toolkit
 
-I'll have a more pmprehensive readme later
+I'll have a more comprehensive readme later
 
 You can uses this verison right off the bat for testing.
 
