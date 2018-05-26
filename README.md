@@ -16,10 +16,10 @@ Update the "title" and any desired icon paths in the following scripts
 * 00-uexrestartagent-jss.sh
 
 If you want to add the icons in the jamfHelper & CocoaDialog windows
-Add them in the Payload inside the packages folder
-Set the owner:group to 'root:wheel' (chown root:wheel $targetFile)
-Set the RW mode to 755 (chmod 755 $targetFile)
-Then to create your UEXreousrce package run the "build_pkg.sh"
+* Add them in the Payload inside the packages folder
+* Set the owner:group to 'root:wheel' (chown root:wheel $targetFile)
+* Set the RW mode to 755 (chmod 755 $targetFile)
+* Then to create your UEXresource package run the "build_pkg.sh"
 
 If you want to update the title and icon in the PleaseWait.app open the project in xcode from the PleaseWaitMini folder
 * Go the MainMenu.XIP and change the title in the incpeter attributes
