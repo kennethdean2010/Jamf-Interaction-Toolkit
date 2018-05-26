@@ -39,5 +39,5 @@ If you want to update the title and icon in the PleaseWait.app open the project 
 5 ) Open and edit the 'UEX Jamf Pro configuration tool.sh' with your UEX Resouce PKG name, and the jamf pro URL + credentials
 6) Run the script 
 
-# More coming soon on paramters and use cases  and imagery and "all that Jazz"
+# More coming soon on paramters and use cases  and imagery and "all that Jazz" 
 
