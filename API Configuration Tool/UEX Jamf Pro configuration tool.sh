@@ -4,17 +4,26 @@
 # Variables
 ###################
 
+<<<<<<< HEAD
 jss_url="https://192.168.31.128:8443"
 jss_user="jssadmin"
 jss_pass="jamf1234"
+=======
+jss_url="https://jss_url"
+jss_user="jss_user"
+jss_pass="jss_pass"
+>>>>>>> 96324362ca5bc9fb8f5d7b33ac7cdc8aa6f36e7b
 
 # Set the category you'd like to use for all the policies
 UEXCategoryName="User Experience"
 
+<<<<<<< HEAD
 packages=(
 "UEXresourcesInstaller-201805252201.pkg"
 )
 
+=======
+>>>>>>> 96324362ca5bc9fb8f5d7b33ac7cdc8aa6f36e7b
 ##########################################################################################
 # 								Do not change anything below!							 #
 ##########################################################################################
@@ -24,7 +33,11 @@ scripts=(
 "00-UEX-Deploy-via-Trigger.sh"
 "00-UEX-Install-Silent-via-trigger.sh"
 "00-UEX-Install-via-Self-Service.sh"
+<<<<<<< HEAD
 "00-UEX-Jamf-Interaction-no-grep.sh"
+=======
+"00-UEX-Jamf-Interaction.sh"
+>>>>>>> 96324362ca5bc9fb8f5d7b33ac7cdc8aa6f36e7b
 "00-UEX-Uninstall-via-Self-Service.sh"
 "00-UEX-Update-via-Self-Service.sh"
 "00-uexblockagent-jss.sh"
@@ -43,10 +56,19 @@ triggerscripts=(
 )
 
 UEXInteractionScripts=(
+<<<<<<< HEAD
 "00-UEX-Jamf-Interaction-no-grep.sh"
 )
 
 
+=======
+"00-UEX-Jamf-Interaction.sh"
+)
+
+packages=(
+"aG-adidas-UEXresources-3.6.pkg"
+)
+>>>>>>> 96324362ca5bc9fb8f5d7b33ac7cdc8aa6f36e7b
 
 ##########################################################################################
 # 										Functions										 #

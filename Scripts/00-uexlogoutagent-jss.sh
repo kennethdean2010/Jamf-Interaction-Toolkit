@@ -1,10 +1,14 @@
 #!/bin/bash
+<<<<<<< HEAD
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
 
+=======
+>>>>>>> 96324362ca5bc9fb8f5d7b33ac7cdc8aa6f36e7b
 ##########################################################################################
 ##								Paramaters for Branding									##
 ##########################################################################################
 
+<<<<<<< HEAD
 title="Your IT Deparment"
 
 #Jamf Pro 10 icon if you want another custom one then please update it here.
@@ -12,6 +16,11 @@ customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIco
 
 #if you you jamf Pro 10 to brand the image for you self sevice icon will be here
 SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
+=======
+title="adidas | Global IT"
+customLogo="/Library/Application Support/JAMF/UEX/resources/adidas_company_logo_BWr.png"
+SelfServiceIcon="/Library/Application Support/JAMF/UEX/resources/Self Service@2x.icns"
+>>>>>>> 96324362ca5bc9fb8f5d7b33ac7cdc8aa6f36e7b
 
 ##########################################################################################
 ##########################################################################################
@@ -72,6 +81,7 @@ logdir="/Library/Application Support/JAMF/UEX/UEX_Logs/"
 ##########################################################################################
 
 
+<<<<<<< HEAD
 ##########################################################################################
 # 										Functions										 #
 ##########################################################################################
@@ -96,6 +106,32 @@ log4_JSS () {
 }
 
 ##########################################################################################
+=======
+##########################################################################################
+# 										Functions										 #
+##########################################################################################
+
+fn_getPlistValue () {
+	/usr/libexec/PlistBuddy -c "print $1" /Library/Application\ Support/JAMF/UEX/$2/"$3"
+}
+
+logInUEX () {
+	sudo echo $(date)	$compname	:	"$1" >> "$logfilepath"
+}
+
+logInUEX4DebugMode () {
+	if [ $debug = true ] ; then	
+		logMessage="-DEBUG- $1"
+		logInUEX $logMessage
+	fi
+}
+
+log4_JSS () {
+	sudo echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
+}
+
+##########################################################################################
+>>>>>>> 96324362ca5bc9fb8f5d7b33ac7cdc8aa6f36e7b
 ##								USER AND PLIST PROCESSING								##
 ##########################################################################################
 
