@@ -1,11 +1,4 @@
 #!/bin/bash
-##########################################################################################
-##								Paramaters for Branding									##
-##########################################################################################
-
-title="adidas | Global IT"
-customLogo="/Library/Application Support/JAMF/UEX/resources/adidas_company_logo_BWr.png"
-SelfServiceIcon="/Library/Application Support/JAMF/UEX/resources/Self Service@2x.icns"
 
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
 
@@ -21,9 +14,6 @@ customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIco
 #if you you jamf Pro 10 to brand the image for you self sevice icon will be here
 SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
 
-##########################################################################################
-##########################################################################################
-##							Do not make any changes below								##
 ##########################################################################################
 ##########################################################################################
 ##							Do not make any changes below								##
