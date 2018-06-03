@@ -22,7 +22,6 @@ dir=$(unset CDPATH && cd "$(dirname "$0")" && echo $PWD)
 # Build package
 
 /usr/bin/pkgbuild --root "${dir}/payload" \
-	 --scripts "${dir}/scripts" \
 	 --identifier ag.adidas.UEXresources.Installer \
 	 --version ${VERSION} \
 	 --component-plist "${dir}/UEXresources-component.plist" \
