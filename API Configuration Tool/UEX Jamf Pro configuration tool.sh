@@ -341,7 +341,6 @@ fn_setScriptParameters () {
 
 	scriptParameterXML="<script>
 	<parameters>
-    <parameter4>Trigger names separated by semi-colon</parameter4>
 <parameter4>$parameter4</parameter4>
 <parameter5>$parameter5</parameter5>
 <parameter6>$parameter6</parameter6>
