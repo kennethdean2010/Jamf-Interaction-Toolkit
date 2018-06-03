@@ -1,6 +1,10 @@
 # Jamf-Interaction-Toolkit
 
+Join the conversation @ **"#uex-tool-for-jamf"** On the MacAdmins Slack
+
 I'll have a more comprehensive readme later
+
+Please check out the [Wiki Here ](https://github.com/cubandave/Jamf-Interaction-Toolkit/wiki)
 
 You can uses this verison right off the bat for testing.
 
@@ -41,5 +45,8 @@ If you want to update the title and icon in the PleaseWait.app open the project 
 *  Open and edit the 'UEX Jamf Pro configuration tool.sh' with your UEX Resouce PKG name, and the jamf pro URL + credentials
 *  Run the script 
 
-# More coming soon on paramters and use cases  and imagery and "all that Jazz" 
+# More coming soon on paramters and use cases and imagery and "all that Jazz" 
+
+
+
 
