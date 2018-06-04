@@ -1417,7 +1417,13 @@ else
 	ssicon="/Applications/Self Service.app/Contents/Resources/Self Service.icns"
 fi
 
-selfservicerunoption="Open up the World of Apps from your Dock and start the $action of $AppName at any time.
+SelfServiceAppName=$( /usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf self_service_app_path 2>/dev/null |\
+					  /usr/bin/sed -ne 's|^.*/\(.*\).app$|\1|p' )
+if [[ -z "${SelfServiceAppName}" ]]; then
+	SelfServiceAppName="Self Service"
+fi
+
+selfservicerunoption="Open up the $SelfServiceAppName from your Dock and start the $action of $AppName at any time.
 
 Otherwise you will be reminded about the $action automatically after your chosen interval."
 
@@ -2735,4 +2741,4 @@ fi
 # Feb 08, 2018	v3.5	--DR--	added countdown to are you sure
 # Mar 26, 2018	v3.5	--DR--	added deferal clears all pospones by the trigger name instead to prevent repeated runs
 # Apr 24, 2018 	v3.7	--DR--	Funtctions added for plist processing
-# 
+# Jun 03, 2018 	v3.7.2	--DR--	Names are generic and self service app name is dynamic
