@@ -21,8 +21,8 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # 
 # User experience Post installation script to be bundled with PKG.
 # 
-# Version Number: 3.7.2
-	uexvers=3.7.2
+# Version Number: 3.7.3
+	uexvers=3.7.3
 # 
 # Created Jan 18, 2016 by David Ramirez
 #
@@ -1411,19 +1411,34 @@ PostponeMsg+="
 				
 "
 
+
 if [[ -e "$SelfServiceIcon" ]]; then
 	ssicon="$SelfServiceIcon"
 else
 	ssicon="/Applications/Self Service.app/Contents/Resources/Self Service.icns"
 fi
 
-SelfServiceAppName=$( /usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf self_service_app_path 2>/dev/null |\
+SelfServiceAppPath=$( /usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf self_service_app_path 2>/dev/null)
+SelfServiceAppName=$( echo "$SelfServiceAppPath" |\
 					  /usr/bin/sed -ne 's|^.*/\(.*\).app$|\1|p' )
+
+SelfServiceAppFolder=`dirname "$SelfServiceAppPath"`
+
 if [[ -z "${SelfServiceAppName}" ]]; then
 	SelfServiceAppName="Self Service"
 fi
 
-selfservicerunoption="Open up $SelfServiceAppName and start the $action of $AppName at any time.
+SelfServiceAppNameDockPlist=`/bin/echo ${SelfServiceAppName// /"%20"}`
+SelfServersioninDock=`sudo -u "$loggedInUser" -H defaults read com.apple.Dock | grep "$SelfServiceAppNameDockPlist"`
+
+# dynamically detect the location of where the user can find self service and update the dialog
+if [[ "$SelfServiceAppNameDockPlist" ]]; then
+	SSLocation="your Dock or $SelfServiceAppFolder,"
+else
+	SSLocation="$SelfServiceAppFolder"
+fi
+
+selfservicerunoption="Open up $SelfServiceAppName from $SSLocation and start the $action of $AppName at any time.
 
 Otherwise you will be reminded about the $action automatically after your chosen interval."
 
@@ -2742,3 +2757,4 @@ fi
 # Mar 26, 2018	v3.5	--DR--	added deferal clears all pospones by the trigger name instead to prevent repeated runs
 # Apr 24, 2018 	v3.7	--DR--	Funtctions added for plist processing
 # Jun 3, 2018 	v3.7.2	--DR--	Names are generic and self service app name is dynamic
+# Jun 3, 2018 	v3.7.3	--DR--	Dynamic detection of Self Service locaiton for messaging

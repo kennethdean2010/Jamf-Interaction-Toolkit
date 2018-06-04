@@ -24,7 +24,7 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # restart if required.
 # 
 # Name: restart-notification.sh
-# Version Number: 3.7.2
+# Version Number: 3.7.3
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas-group.com)

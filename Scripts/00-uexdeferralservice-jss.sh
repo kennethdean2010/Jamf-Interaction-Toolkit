@@ -7,7 +7,7 @@
 # PKGs that have been deferred once enough time has elapsed OR if no one is logged in.
 # 
 # Name: deferral-service
-# Version Number: 3.7.2
+# Version Number: 3.7.3
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas-group.com)
