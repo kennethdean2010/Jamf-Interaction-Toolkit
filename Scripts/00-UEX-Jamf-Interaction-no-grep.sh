@@ -1432,7 +1432,7 @@ SelfServiceAppNameDockPlist=`/bin/echo ${SelfServiceAppName// /"%20"}`
 SelfServersioninDock=`sudo -u "$loggedInUser" -H defaults read com.apple.Dock | grep "$SelfServiceAppNameDockPlist"`
 
 # dynamically detect the location of where the user can find self service and update the dialog
-if [[ "$SelfServiceAppNameDockPlist" ]]; then
+if [[ "$SelfServersioninDock" ]]; then
 	SSLocation="your Dock or $SelfServiceAppFolder,"
 else
 	SSLocation="$SelfServiceAppFolder"
