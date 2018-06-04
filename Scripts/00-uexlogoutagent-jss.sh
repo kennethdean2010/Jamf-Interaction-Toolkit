@@ -23,7 +23,7 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # logout if required.
 # 
 # Name: logout-notification.sh
-# Version Number: 3.7
+# Version Number: 3.7.2
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas-group.com)

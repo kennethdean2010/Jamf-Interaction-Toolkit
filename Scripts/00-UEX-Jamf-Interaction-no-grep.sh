@@ -21,8 +21,8 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # 
 # User experience Post installation script to be bundled with PKG.
 # 
-# Version Number: 3.7
-	uexvers=3.7
+# Version Number: 3.7.2
+	uexvers=3.7.2
 # 
 # Created Jan 18, 2016 by David Ramirez
 #
@@ -2741,4 +2741,4 @@ fi
 # Feb 08, 2018	v3.5	--DR--	added countdown to are you sure
 # Mar 26, 2018	v3.5	--DR--	added deferal clears all pospones by the trigger name instead to prevent repeated runs
 # Apr 24, 2018 	v3.7	--DR--	Funtctions added for plist processing
-# Jun 03, 2018 	v3.7.2	--DR--	Names are generic and self service app name is dynamic
+# Jun 3, 2018 	v3.7.2	--DR--	Names are generic and self service app name is dynamic
