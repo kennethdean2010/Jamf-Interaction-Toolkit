@@ -1423,7 +1423,7 @@ if [[ -z "${SelfServiceAppName}" ]]; then
 	SelfServiceAppName="Self Service"
 fi
 
-selfservicerunoption="Open up the $SelfServiceAppName from your Dock and start the $action of $AppName at any time.
+selfservicerunoption="Open up $SelfServiceAppName and start the $action of $AppName at any time.
 
 Otherwise you will be reminded about the $action automatically after your chosen interval."
 
