@@ -7,15 +7,17 @@ loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v ro
 
 title="Your IT Deparment"
 
-#Jamf Pro 10 icon if you want another custom one then please update it here.
+# Jamf Pro 10 icon if you want another custom one then please update it here.
+# or you can customize this with an image you've included in UEX resources or is already local on the computer
 customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIcon.icns"
 
-#if you you jamf Pro 10 to brand the image for you self sevice icon will be here
+# if you you jamf Pro 10 to brand the image for you self sevice icon will be here
+# or you can customize this with an image you've included in UEX resources or is already local on the computer
 SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
 
 ##########################################################################################
 ##########################################################################################
-##							Do not make any changes below								##
+##							DO NOT MAKE ANY CHANGES BELOW								##
 ##########################################################################################
 ##########################################################################################
 # 
@@ -23,10 +25,10 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # It run through the list of apps checks to see if they are running and then kills them.
 # 
 # Name: Block-notification.sh
-# Version Number: 3.7.3
+# Version Number: 3.8
 # 
 # Created Jan 18, 2016 by 
-# David Ramirez (David.Ramirez@adidas-group.com)
+# David Ramirez (David.Ramirez@adidas.com)
 #
 # Updates January 23rd, 2016 by
 # DR = David Ramirez (D avid.Ramirez@adidas-group.com) 

@@ -7,30 +7,32 @@ loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v ro
 
 title="Your IT Deparment"
 
-#Jamf Pro 10 icon if you want another custom one then please update it here.
+# Jamf Pro 10 icon if you want another custom one then please update it here.
+# or you can customize this with an image you've included in UEX resources or is already local on the computer
 customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIcon.icns"
 
-#if you you jamf Pro 10 to brand the image for you self sevice icon will be here
+# if you you jamf Pro 10 to brand the image for you self sevice icon will be here
+# or you can customize this with an image you've included in UEX resources or is already local on the computer
 SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
 
 ##########################################################################################
 ##########################################################################################
-##							Do not make any changes below								##
+##							DO NOT MAKE ANY CHANGES BELOW								##
 ##########################################################################################
 ##########################################################################################
 # 
 # User experience Post installation script to be bundled with PKG.
 # 
-# Version Number: 3.7.3
-	uexvers=3.7.3
+# Version Number: 3.8
+	uexvers=3.8
 # 
 # Created Jan 18, 2016 by David Ramirez
 #
 # January 23rd, 2017 by
-# DR = David Ramirez (David.Ramirez@adidas-group.com)
+# DR = David Ramirez (David.Ramirez@adidas.com)
 # 
-# Updated: Feb 21th, 2017 by
-# DR = David Ramirez (David.Ramirez@adidas-group.com)
+# Updated: Aug 27th, 2018 by
+# DR = David Ramirez (David.Ramirez@adidas.com)
 # 
 # 
 # Copyright (c) 2018 the adidas Group
@@ -209,7 +211,7 @@ cleanupCocoaDialogProgress () {
 
 fn_getLoggedinUser () {
 	loggedInUser=$(/usr/bin/stat -f%Su /dev/console)
-	log4_JSS "fn_getLoggedinUser returned $loggedInUser"
+	logInUEX4DebugMode "fn_getLoggedinUser returned $loggedInUser"
 }
 
 fn_waitForUserToLogout () {
@@ -465,18 +467,21 @@ Downloading updates."
 
 		if [[ "$updates" == *"Security"* ]] ; then
 			checks+=" critical"
+			checks+=" compliance"
 			installDuration=5
 		fi
 
 
 		if [[ "$updates" == *"OS X"* ]] ; then
 			checks+=" power"
+			checks+=" compliance"
 			installDuration=5
 			diagblock=true
 		fi
 		
 		if [[ "$updates" == *"macOS"* ]] ; then
 			checks+=" power"
+			checks+=" compliance"
 			installDuration=5
 			diagblock=true
 		fi
@@ -484,6 +489,7 @@ Downloading updates."
 		if [[ "$updates" == *"Firmware"* ]] ; then
 			checks+=" power"
 			checks+=" restart"
+			checks+=" compliance"
 			log4_JSS "contains Firmware Update"
 		fi
 
@@ -1661,19 +1667,25 @@ while [ $reqlooper = 1 ] ; do
 		skipOver=true
 		
 	else
+		logInUEX4DebugMode "Delay options are $delayOptions"
+		log4_JSS "Showing the Isntall window"
 		if [[ $checks == *"critical"* ]] ; then
-			"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut > $PostponeClickResultFile &
+			log4_JSS "Showing the install window. Critical"
+			"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 		else
 			if [ $selfservicePackage = true ] ; then 
-				"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "Start now" -button2 "Cancel" -icon "$icon" -windowPosition center -timeout $jhTimeOut > $PostponeClickResultFile &
+				"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "Start now" -button2 "Cancel" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 			else
 
 				if [[ $delayNumber -ge $maxdefer ]] ; then 
-					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut > $PostponeClickResultFile &
+					log4_JSS "Showing the install window. No postpones left"
+					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 				elif [[ $checks == *"restart"* ]] || [[ $checks == *"logout"* ]] || [[ $checks == *"macosupgrade"* ]] || [[ $checks == *"loginwindow"* ]] || [[ $checks == *"lock"* ]] || [[ $checks == *"saveallwork"* ]] ; then
-					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -showDelayOptions "$delayOptions" -button1 "OK" -button2 "at Logout" -icon "$icon" -windowPosition center -timeout $jhTimeOut > $PostponeClickResultFile &
+					log4_JSS "Showing the install window. Allowing for install at logout. $postponesLeft postpones left"
+					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -showDelayOptions "$delayOptions" -button1 "OK" -button2 "at Logout" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 				else
-					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -showDelayOptions "$delayOptions" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut > $PostponeClickResultFile &
+					log4_JSS "Showing the install window. $postponesLeft postpones left."
+					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -showDelayOptions "$delayOptions" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 				fi # Max defer exceeded
 			fi # self service true
 
@@ -1699,10 +1711,24 @@ while [ $reqlooper = 1 ] ; do
 
 	if [ -z $PostponeClickResult ] ; then
 
-		if [ "$forceInstall" = true ] ; then 
+		# Check if the user has ignored the the install prompt and exhased all delays
+		if [ $inactivityDelay -ge 3 ] && [[ $delayNumber -ge $maxdefer ]] && [[ "$checks" == *"compliance"* ]] ; then 
+			log4_JSS "User has exhausted delay options and ignored the prompt 3 times further."
+			log4_JSS "This is a compliance policy and will be forced to install."
+			forceInstall=true
+		fi
+
+		## compliance Checks are the only software titles that isntall without user choosing to install
+		if [ "$forceInstall" = true ] && [[ "$checks" == *"compliance"* ]] ; then 
 			PostponeClickResult=""
+			if [[ "$checks" == *"restart"* ]] || [[ "$checks" == *"logout"* ]] ; then
+				#statements
+				checks+=" saveallwork"
+			fi
 		else
+			log4_JSS "User was inactive on UEX Prompt or quit jamfHelper"
 			if [ $inactivityDelay -ge 3 ] ; then 
+					log4_JSS "User has ignored the prompt 3 times. Exhausting a deferral."
 					PostponeClickResult=86400
 					inactivityDelay=0
 			else
@@ -1724,7 +1750,7 @@ while [ $reqlooper = 1 ] ; do
 			logouticon="$icon"
 		fi
 
-		sudo echo $(date)	$compname	:	User chose to install at logout | /usr/bin/tee -a "$logfilepath"
+		log4_JSS "User chose to install at logout"
 
 		logoutClickResult=$( "$jhPath" -windowType hud -lockHUD -icon "$logouticon" -title "$title" -heading "Install at logout" -description "$logoutMessage" -button1 "OK" -button2 "Go Back")
 		if [ $logoutClickResult = 0 ] ; then 
@@ -1745,6 +1771,21 @@ while [ $reqlooper = 1 ] ; do
 		if [ "$PostponeClickResult" = 0 ] ; then
 			PostponeClickResult=""
 		fi # ppcr=0
+
+		# delayOptions="0, 60, 3600, 7200, 14400, 86400"
+		if [ "$PostponeClickResult" = 60 ] ; then
+			log4_JSS "User chose to delay for 1 minute"
+		elif [ "$PostponeClickResult" = 3600 ] ; then
+			log4_JSS "User chose to delay for 1 hour"
+		elif [ "$PostponeClickResult" = 7200 ] ; then
+			log4_JSS "User chose to delay for 2 hours"
+		elif [ "$PostponeClickResult" = 14400 ] ; then
+			log4_JSS "User chose to delay for 4 hours"
+		elif [ "$PostponeClickResult" = 86400 ] && [ $loginscreeninstall != true ] ; then
+			log4_JSS "User chose to delay for 1 day"
+		fi
+
+
 	fi # if PPCR is blank because the user clicked close
 
 
@@ -1797,7 +1838,10 @@ Current work may be lost if you do not save before proceeding."
 			else
 				reqlooper=0
 				if [ $areYouSure = 2 ] ; then 
-					log4_JSS "User Clicked continue."
+					log4_JSS "User Clicked continue or timer ran out."
+				fi
+				if [ $areYouSure = 239 ] ; then 
+					log4_JSS "User Quit jamfHelper."
 				fi
 			fi
 		fi # ARE YOU SURE? if apps are still running 
@@ -1942,7 +1986,7 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 	delayDate=$((runDate+delaytime))
 	delayDateFriendly=`date -r $delayDate`
 
-	log4_JSS "The install is postponed until $delayDateFriendly"
+	log4_JSS "The next $action prompt is postponed until after $delayDateFriendly"
 
 	if [ $selfservicePackage = true ] ; then
 		log4_JSS "SELF SERVICE PACKAGE: Skipping Delay Service"
@@ -2465,7 +2509,7 @@ EOT
 			fi
 
 			#Debug Line
-			echo exit code for installer is $?
+			logInUEX4DebugMode "exit code for installer is $?"
 			
 			installResults=`cat "$resultlogfilepath" | tr '[:upper:]' '[:lower:]'`
 			if 	[[ "$installResults" == *"failed"* ]] || [[ "$installResults" == *"error"* ]] ; then
@@ -2546,7 +2590,13 @@ EOT
 	logInUEX "Stopping the PleaseWait LaunchDaemon."
 
 
-	fn_execute_log4_JSS "sudo launchctl unload -w $pleaseWaitDaemon"
+	#only kill the pleaseWaitDaemon if it's running
+	launchcltList=`launchctl list`
+	if [[ "$launchcltList" == *"com.adidas-group.UEX-PleaseWait"* ]]; then
+		#statements
+		fn_execute_log4_JSS "sudo launchctl unload -w $pleaseWaitDaemon"
+	fi
+	
 	killall PleaseWait > /dev/null 2>&1
 	
 	# delete the daemon for cleanup
@@ -2758,3 +2808,14 @@ fi
 # Apr 24, 2018 	v3.7	--DR--	Funtctions added for plist processing
 # Jun 3, 2018 	v3.7.2	--DR--	Names are generic and self service app name is dynamic
 # Jun 3, 2018 	v3.7.3	--DR--	Dynamic detection of Self Service locaiton for messaging
+# Aug 26, 2018	v3.8	--DR--	Added a compliance and force isntall mechanism for force instllatation, 
+# Aug 26, 2018	v3.8	--DR--	Security, macOS and Firmware added as complance policies
+# Aug 26, 2018	v3.8	--DR--	Quitting Jamf helper now acts as if you've ignored it triggering inactivity delay.
+# Aug 26, 2018	v3.8	--DR--	moved some logging to debug mode only and increase logging on UEX dialogs
+
+
+
+
+
+
+

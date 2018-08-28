@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 ##########################################################################################
@@ -8,10 +9,10 @@
 # restarts and logouts
 # 
 # Name: PleaseWaitUpdater.sh
-# Version Number: 3.7.3
+# Version Number: 3.8
 # 
 # Created Jan 18, 2016 by 
-# David Ramirez (David.Ramirez@adidas-group.com)
+# David Ramirez (David.Ramirez@adidas.com)
 # 
 # 
 # Copyright (c) 2015 the adidas Group
