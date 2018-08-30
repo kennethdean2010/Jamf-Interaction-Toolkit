@@ -5,7 +5,7 @@ loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v ro
 ##								Paramaters for Branding									##
 ##########################################################################################
 
-title="Your IT Deparment"
+title="Your IT Department"
 
 # Jamf Pro 10 icon if you want another custom one then please update it here.
 # or you can customize this with an image you've included in UEX resources or is already local on the computer
@@ -99,14 +99,14 @@ customMessage=${11}
 
 
 # fordebugging
- # NameConsolidated="Extensis;Universal Type Client;6.1.5"
- # checks="quit"
- # apps="Universal Type Client.app;Adobe Photoshop CC 2015.app;Adobe Photoshop CC 2017.app;Adobe Illustrator.app;Adobe Photoshop CC 2014.app;Adobe InDesign CC 2014.app;Adobe InDesign CC 2015.app;Adobe InDesign CC 2017.app"
- # installDuration=5
- # maxdefer=3
- # packages=aG-Extensis-UniversalTypeClient-6.1.5-OSX-EN-SR03395-1.0.pkg
- # triggers=universaltypeclient
-
+# NameConsolidated="Apple;Apple Software Updates;6.1.5"
+# checks="restart power quit"
+# apps="iTunes.app"
+# installDuration=60
+# maxdefer=1
+# packages=
+# triggers=softwareupdates
+# customMessage=""
 
 ##########################################################################################
 ##										FUNCTIONS										##
@@ -1467,7 +1467,7 @@ fi
 logoutMessage+="• Open the (Apple) Menu
 • Click 'Log Out $usernamefriendly...' 
 
-You have until tomorrow, then you will prompted again to about the $action."
+You have until tomorrow, then you will prompted again about the $action."
 
 
 ##########################################################################################
@@ -2796,7 +2796,7 @@ fi
 # 
 # 
 # Insert TONS of Updates for update 3.0 ;-)
-# Jan 23, 2017 	v3.0	--DR--	Stage 3 Delivered
+# Jan 23, 2017 	v3.0	--DR--	Stage 3 Delivered to run from Jamf Pro directly
 # Jul 12, 2017	v3.1	--DR--	added new icons and support for custom notification (check = custom)
 # Sep 22, 2017	v3.2	--DR--	Added Support for Catching in the script
 # Sep 30, 2017	v3.3	--DR--	added suport for choosing if inventory updates should apply

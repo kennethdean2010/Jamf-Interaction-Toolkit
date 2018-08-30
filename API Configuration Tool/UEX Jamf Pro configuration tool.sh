@@ -4,7 +4,7 @@
 # Variables
 ###################
 
-jss_url="https://192.168.31.128:8443"
+jss_url="https://172.16.200.128:8443"
 jss_user="jssadmin"
 jss_pass="jamf1234"
 
@@ -12,7 +12,7 @@ jss_pass="jamf1234"
 UEXCategoryName="User Experience"
 
 packages=(
-"UEXresourcesInstaller-201805252201.pkg"
+"UEXresourcesInstaller-201808261056.pkg"
 )
 
 ##########################################################################################

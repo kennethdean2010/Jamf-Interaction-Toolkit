@@ -5,7 +5,7 @@ loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v ro
 ##								Paramaters for Branding									##
 ##########################################################################################
 
-title="Your IT Deparment"
+title="Your IT Department"
 
 # Jamf Pro 10 icon if you want another custom one then please update it here.
 # or you can customize this with an image you've included in UEX resources or is already local on the computer
