@@ -32,7 +32,7 @@ unset IFS
 
 for triggerName in ${triggers[@]} ; do
 
-	sudo "$jamfBinary" policy -forceNoRecon -trigger "$triggerName"
+	"$jamfBinary" policy -forceNoRecon -trigger "$triggerName"
 
 	if [[ $? != 0 ]]; then
 		echo The policy for trigger "$triggerName" exited in a non-zero status

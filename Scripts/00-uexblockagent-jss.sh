@@ -82,7 +82,7 @@ fn_getPlistValue () {
 }
 
 logInUEX () {
-	sudo echo $(date)	$compname	:	"$1" >> "$logfilepath"
+	echo $(date)	$compname	:	"$1" >> "$logfilepath"
 }
 
 logInUEX4DebugMode () {
@@ -93,7 +93,7 @@ logInUEX4DebugMode () {
 }
 
 log4_JSS () {
-	sudo echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
+	echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
 }
 
 ##################################
@@ -198,7 +198,7 @@ runBlocking=`ls /Library/Application\ Support/JAMF/UEX/block_jss/ | grep ".plist
 		if [[ timeSinceReboot -gt 0 ]] ; then
 			# the computer has rebooted since $runDateFriendly
 			# Delete block requirement plist
-			sudo rm /Library/Application\ Support/JAMF/UEX/block_jss/"$i"
+			rm /Library/Application\ Support/JAMF/UEX/block_jss/"$i"
 		else 
 			# the computer has NOT rebooted since $runDateFriendly
 			# Process the apps in the plist and kill and notify
@@ -214,8 +214,8 @@ runBlocking=`ls /Library/Application\ Support/JAMF/UEX/block_jss/ | grep ".plist
 						################################
 						processData=`ps aux | grep "$app"/Contents/MacOS/ | grep -v grep | grep -v PleaseWaitUpdater.sh | grep -v PleaseWait | grep -v sed | grep -v jamf | grep -v cocoaDialog `
 						for process in $processData ; do
-							if [ $debug = true ] ; then	sudo echo $(date)	$compname	:	-DEBUG-	 '*****' PROCESSS FOUND MATCHING CRITERIA '******' | /usr/bin/tee -a "$logfilepath" ; fi
-							if [ $debug = true ] ; then	sudo echo $(date)	$compname	:	-DEBUG-	 "$process" | /usr/bin/tee -a "$logfilepath" ; fi
+							if [ $debug = true ] ; then	echo $(date)	$compname	:	-DEBUG-	 '*****' PROCESSS FOUND MATCHING CRITERIA '******' | /usr/bin/tee -a "$logfilepath" ; fi
+							if [ $debug = true ] ; then	echo $(date)	$compname	:	-DEBUG-	 "$process" | /usr/bin/tee -a "$logfilepath" ; fi
 						done
 						####################################
 						# Debugging applications kills END #
@@ -223,7 +223,7 @@ runBlocking=`ls /Library/Application\ Support/JAMF/UEX/block_jss/ | grep ".plist
 					
 						for id in $appid; do
 	# 						echo Killing $app. pid is $id 
-							sudo echo $(date)	$compname	:	App "$app" was found running, killing process. pid is $id | /usr/bin/tee -a "$logfilepath"
+							echo $(date)	$compname	:	App "$app" was found running, killing process. pid is $id | /usr/bin/tee -a "$logfilepath"
 							kill $id
 						done 
 #################

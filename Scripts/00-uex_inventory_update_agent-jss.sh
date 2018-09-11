@@ -11,6 +11,6 @@ while [[ $otherJamfprocess != "" ]] ; do
 	otherJamfprocess=`ps aux | grep jamf | grep -v grep | grep -v launchDaemon | grep -v jamfAgent | grep -v uexrestartagent | grep -v uex_inventory_update_agent | grep -v uexlogoutagent`
 done
 
-sudo $jamfBinary recon
+$jamfBinary recon
 
 exit 0

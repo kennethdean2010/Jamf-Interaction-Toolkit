@@ -101,7 +101,7 @@ customMessage=${11}
 # fordebugging
 NameConsolidated="Apple;UEX DEMO;6.1.5"
 checks="quit debug"
-apps="iTunes.app;Google Chrome.app"
+apps="Google Chrome.app"
 installDuration=60
 maxdefer=1
 packages=
@@ -811,8 +811,11 @@ fn_generatateApps2quit () {
 				appFound=""
 				userAppFound=""
 				# Find the apss in /Applications/ and ~/Applications/ and open as the user
-				appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$app"`
-				userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$app"`
+				if [[ "$checks" != *"uninstall"* ]]; then
+					appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$app"`
+					userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$app"`
+				fi
+				
 				
 				if [[ "$appFound" ]] || [[ "$userAppFound" ]]; then
 					apps2ReOpen+=(${app})
@@ -825,6 +828,26 @@ fn_generatateApps2quit () {
 		fi
 	done
 	unset IFS
+}
+
+fn_waitForApps2Quit () {
+	appsRunning=()
+	for app in "${apps[@]}" ; do
+		IFS=$'\n'
+		appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
+		# Processing application $app
+		if  [ "$appid" != "" ] ; then
+			appsRunning+=(${app})
+
+		fi
+	done
+
+	if [[ "${appsRunning[@]}" != *".app"* ]]; then
+		log4_JSS "User has closed all apps needed. Continuing $action"
+		echo 1 > $PostponeClickResultFile
+		apps2Relaunch=("${apps2ReOpen[@]}")
+		killall jamfHelper
+	fi
 }
 
 linkaddress="/Library/Logs/"
@@ -1362,7 +1385,7 @@ $apps4dialogquit
 fi
 
 if [[ "${apps2ReOpen[@]}" == *".app"*  ]] && [[ "$checks" != *"custom"* ]] ; then
-	PostponeMsg+="• These apps will quit and reopen after complete:
+	PostponeMsg+="• These apps will reopen after the $action:
 $apps4dialogreopen
 
 "
@@ -1716,7 +1739,6 @@ while [ $reqlooper = 1 ] ; do
 	fi # if apps are empty & quit is set but no restart & no logout 
 
 	# this is a safety net for closing and for 10.9 skiping jamfHelper windows
-
 	counter=0
 	jamfHelperOn=`ps aux | grep jamfHelper | grep -v grep`
 	while [[ $jamfHelperOn != "" ]] ; do
@@ -1726,10 +1748,22 @@ while [ $reqlooper = 1 ] ; do
 		if [ "$counter" -ge $timeLimit ] ; then 
 			killall jamfHelper
 		fi
+
+		if [[ "$checks" == *"quit"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
+			echo CHECKING IF APPS ARE QUIT
+			fn_waitForApps2Quit
+
+		elif [[ "$checks" == *"block"* ]] && [[ "${apps2quit[@]}" == *".app"*  ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
+			echo CHECKING IF APPS ARE QUIT
+			fn_waitForApps2Quit
+		fi
+
 		jamfHelperOn=`ps aux | grep jamfHelper | grep -v grep`
 	done
 
+
 	PostponeClickResult=`cat $PostponeClickResultFile`
+	echo PostponeClickResult is $PostponeClickResult
 
 	if [ -z $PostponeClickResult ] ; then
 
@@ -1995,7 +2029,7 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 		tomorrow9amEpoch=`date -j -f '%a %b %d %T %Z %Y' "$tomorrow9am" '+%s'`
 		nowEpoch=`date +%s`
 		PostponeClickResult=$((tomorrow9amEpoch-nowEpoch))
-	fi
+	fi # if the postpone is 1 day
 	
 	# User chose postpone time
 	delaytime=$PostponeClickResult
@@ -2020,7 +2054,7 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 			triggerNgo $UEXcachingTrigger
 		fi
 
-	else
+	else # not a self service package
 		
 		#if the defer folder if empty and i'm creating the first deferal then invetory updates are needed to the comptuer is in scope of the deferral service
 		deferfolderContents=`ls "/Library/Application Support/JAMF/UEX/defer_jss/" | grep plist`
@@ -2028,26 +2062,11 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 			InventoryUpdateRequired=true
 		fi
 
-# 		deferpackages="/Library/Application Support/JAMF/UEX/deferPKGs"
 		watingroomdir="/Library/Application Support/JAMF/Waiting Room/"
-# 		sudo mkdir "$deferpackages"
-		
-# 		sudo mv -f "$pathToPackage" "$deferpackages"/"$packageName"
-# 		sudo ln -s "$deferpackages"/"$packageName" "$watingroomdir"
+
 		
 		if [[ -a /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist ]] ; then
-		# Create Plist with postpone properties 
-			# sudo /usr/libexec/PlistBuddy -c "set package ${packageName}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set folder ${deferpackages}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set delayDate ${delayDate}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set delayDateFriendly ${delayDateFriendly}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set delayNumber ${delayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set presentationDelayNumber ${presentationDelayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set inactivityDelay ${inactivityDelay}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set loginscreeninstall ${loginscreeninstall}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set policyTrigger ${UEXpolicyTrigger}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set checks ${checks}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-
+			# Create Plist with postpone properties 
 			fn_setPlistValue "package" "$packageName" "defer_jss" "$packageName.plist"
 			fn_setPlistValue "folder" "$deferpackages" "defer_jss" "$packageName.plist"
 			fn_setPlistValue "delayDate" "$delayDate" "defer_jss" "$packageName.plist"
@@ -2061,17 +2080,6 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 
 		else
 			# Create Plist with postpone properties 
-			# sudo /usr/libexec/PlistBuddy -c "add package string ${packageName}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add folder string ${deferpackages}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add delayDate string ${delayDate}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add delayDateFriendly string ${delayDateFriendly}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add delayNumber string ${delayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add presentationDelayNumber string ${presentationDelayNumber}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add inactivityDelay string ${inactivityDelay}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add loginscreeninstall string ${loginscreeninstall}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add policyTrigger string ${UEXpolicyTrigger}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist > /dev/null 2>&1
-
 			fn_addPlistValue "package" "string" "$packageName" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "folder" "string" "$deferpackages" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "delayDate" "string" "$delayDate" "defer_jss" "$packageName.plist"
@@ -2082,22 +2090,11 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 			fn_addPlistValue "loginscreeninstall" "string" "$loginscreeninstall" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "policyTrigger" "string" "$UEXpolicyTrigger" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "checks" "string" "$checks" "defer_jss" "$packageName.plist"
-		fi
-		
-		
-	
-		# logInUEX4DebugMode "Plist Details: package string ${packageName}"
-		# logInUEX4DebugMode "Plist Details: folder string ${deferpackages}"
-		# logInUEX4DebugMode "Plist Details: folder string ${deferpackages}"
-		# logInUEX4DebugMode "Plist Details: delayDate string ${delayDate}"
-		# logInUEX4DebugMode "Plist Details: delayDateFriendly string ${delayDateFriendly}"
-		# logInUEX4DebugMode "Plist Details: delayNumber string ${delayNumber}"
-		# logInUEX4DebugMode "Plist Details: policyTrigger string ${UEXpolicyTrigger}"
-		# logInUEX4DebugMode "Plist Details: checks string ${checks}"
-	
+		fi # if the defer plist exists 
 
-	fi
-fi
+	fi # if self service pacakge is true
+
+fi # if there is a postponement
 
 ##########################################################################################
 ##									Installation Stage									##
@@ -2213,7 +2210,11 @@ fi # no on logged in
 		fn_generatateApps2quit
 
 		if [[ $apps2kill != "" ]] ; then
-			apps2Relaunch=()
+
+			# if the app to re launc is not blank it means the apps wer quit manuaully when the isntall window was up
+			if 	[ -z "${apps2Relaunch[@]}" ] ; then
+				apps2Relaunch=()
+			fi
 			for app in "${apps2kill[@]}" ; do
 				IFS=$'\n'
 				appid=`ps aux | grep "$app"/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
@@ -2224,7 +2225,16 @@ fi # no on logged in
 							# Killing $app. pid is $id 
 							log4_JSS "$app is still running. Quitting app."
 							apps2Relaunch+=($app)
-							kill $id
+							log4_JSS "Re-opening $app"
+							osascript -e "quit app \"$app\""
+							# kill $id
+							# sleep 1
+							# processstatus=`ps -p $id`
+							# if [[ "$processstatus" == *"$id"* ]]; then
+							# 	#statements
+							# 	log4_JSS "The process $id was still running for application $app. Force killing Application."
+							# 	kill -9 $id
+							# fi 
 						done 
 					fi
 			done
@@ -2246,8 +2256,14 @@ fi # no on logged in
 					for id in $appid; do
 						# Application  $app is still running.
 						# Killing $app. pid is $id 
-						kill $id
 						log4_JSS "$app is still running. Quitting app."
+						kill $id
+						processstatus=`ps -p $id`
+							if [[ "$processstatus" == *"$id"* ]]; then
+								#statements
+								log4_JSS "The process $id was still running for application $app. Force killing Application."
+								kill -9 $id
+							fi 
 					done 
 				fi
 		done
@@ -2259,13 +2275,6 @@ fi # no on logged in
 		
 		# Create Plist with all that properties to block the apps
 		# added Package & date info for restar safety measures
-		# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		# sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		# sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		# sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		# sudo /usr/libexec/PlistBuddy -c "add apps2block string ${apps2block}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-		# sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/block_jss/"$packageName".plist > /dev/null 2>&1
-
 		fn_addPlistValue "name" "string" "$heading" "block_jss" "$packageName.plist"
 		fn_addPlistValue "packageName" "string" "$packageName" "block_jss" "$packageName.plist"
 		fn_addPlistValue "runDate" "string" "$runDate" "block_jss" "$packageName.plist"
@@ -2273,20 +2282,12 @@ fi # no on logged in
 		fn_addPlistValue "apps2block" "string" "$apps2block" "block_jss" "$packageName.plist"
 		fn_addPlistValue "checks" "string" "$checks" "block_jss" "$packageName.plist"
 
-		# logInUEX4DebugMode "Plist Details: name string ${heading}"
-		# logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
-		# logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
-		# logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
-		# logInUEX4DebugMode "Plist Details: apps2block string ${apps2block}"
-		# logInUEX4DebugMode "Plist Details: checks string ${checks}"
-
 		# Start the agent to actively block the applications
 		logInUEX "Starting Blocking Service"
-# 		sudo launchctl load -w /Library/LaunchDaemons/com.adidas-group.UEX-block2.0.plist
 		triggerNgo uexblockagent
 
 	
-	fi
+	fi # if the check has block
 
 	#####################
 	# 		Logout	 	#
@@ -2308,13 +2309,6 @@ fi # no on logged in
 		# added checked variable to allow for clearring the plist so that the second stage can change it then delete it.
 		
 		if [[ -a /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist ]] ; then
-			# sudo /usr/libexec/PlistBuddy -c "set name ${heading}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set packageName ${packageName}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set runDate ${runDate}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set runDateFriendly ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set loggedInUser ${loggedInUser}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set checked false" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-
 			fn_setPlistValue "name" "$heading" "logout_jss" "$packageName.plist"
 			fn_setPlistValue "packageName" "$packageName" "logout_jss" "$packageName.plist"
 			fn_setPlistValue "runDate" "$runDate" "logout_jss" "$packageName.plist"
@@ -2323,13 +2317,6 @@ fi # no on logged in
 			fn_setPlistValue "checked" "false" "logout_jss" "$packageName.plist"
 
 		else
-			# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add loggedInUser string ${loggedInUser}" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add checked bool false" /Library/Application\ Support/JAMF/UEX/logout_jss/"$packageName".plist > /dev/null 2>&1
-
 			fn_addPlistValue "name" "string" "$heading" "logout_jss" "$packageName.plist"
 			fn_addPlistValue "packageName" "string" "$packageName" "logout_jss" "$packageName.plist"
 			fn_addPlistValue "runDate" "string" "$runDate" "logout_jss" "$packageName.plist"
@@ -2339,16 +2326,9 @@ fi # no on logged in
 
 
 		fi
-		
-		# logInUEX4DebugMode "Plist Details: name string ${heading}"
-		# logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
-		# logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
-		# logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
-		# logInUEX4DebugMode "Plist Details: loggedInUser string ${loggedInUser}"
-		# logInUEX4DebugMode "Plist Details: checked bool false"
 
 
-	fi
+	fi # if the check has logout
 
 	#####################
 	# 		Restart	 	#
@@ -2362,32 +2342,19 @@ fi # no on logged in
 		# Create plist with Restart required
 		# Added date to allow for clearing and fail safe in case the user restart manually
 		if [[ -a /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist ]] ; then
-			# sudo /usr/libexec/PlistBuddy -c "set name ${heading}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set packageName ${packageName}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set runDate ${runDate}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "set runDateFriendly ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-		
 			fn_setPlistValue "name" "$heading" "restart_jss" "$packageName.plist"
 			fn_setPlistValue "packageName" "$packageName" "restart_jss" "$packageName.plist"
 			fn_setPlistValue "runDate" "$runDate" "restart_jss" "$packageName.plist"
 			fn_setPlistValue "runDateFriendly" "$runDateFriendly" "restart_jss" "$packageName.plist"
 
 		else
-			# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add packageName string ${packageName}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add runDate string ${runDate}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-			# sudo /usr/libexec/PlistBuddy -c "add runDateFriendly string ${runDateFriendly}" /Library/Application\ Support/JAMF/UEX/restart_jss/"$packageName".plist > /dev/null 2>&1
-
 			fn_addPlistValue "name" "string" "$heading" "restart_jss" "$packageName.plist"
 			fn_addPlistValue "packageName" "string" "$packageName" "restart_jss" "$packageName.plist"
 			fn_addPlistValue "runDate" "string" "$runDate" "restart_jss" "$packageName.plist"
 			fn_addPlistValue "runDateFriendly" "string" "$runDateFriendly" "restart_jss" "$packageName.plist"
-		fi
+		fi # if the check has restart
 
-		# logInUEX4DebugMode "Plist Details: name string ${heading}"
-		# logInUEX4DebugMode "Plist Details: packageName string ${packageName}"
-		# logInUEX4DebugMode "Plist Details: runDate string ${runDate}"
-		# logInUEX4DebugMode "Plist Details: runDateFriendly string ${runDateFriendly}"
+
 
 
 	fi
@@ -2395,6 +2362,7 @@ fi # no on logged in
 	################
 	# progress bar #
 	################
+	# echo skipNotices is $skipNotices
 	if  [ $installDuration -ge 5 ] && [[ $skipNotices != "true" ]] ; then
 	# only run the progress indicator if the duration is 5 minutes or longer 
 		
@@ -2455,8 +2423,8 @@ EOT
 		# Sets the Initial Values 
 		if [ "$suspackage" = true ] ; then
 			echo "Software Updates in progress" > $pleasewaitPhase
-			# sudo chflags uchg $pleasewaitPhase > /dev/null 2>&1
- 			# sudo chflags schg $pleasewaitPhase > /dev/null 2>&1
+			# chflags uchg $pleasewaitPhase > /dev/null 2>&1
+ 			# chflags schg $pleasewaitPhase > /dev/null 2>&1
 		fi
 		
 		sleep 2
@@ -2478,8 +2446,8 @@ EOT
 # 		Currently installing..."
 # # 		"$jhPath" -icon "$icon" -windowType hud -windowPosition lr -startlaunchd -title "$title" -description "$status" > /dev/null 2>&1 &
 # 		echo '#!/bin/sh' > /tmp/jamfhelperwindow.sh
-# 		echo sudo '"'"$jhPath"'"' -icon '"'"$icon"'"' -windowType hud -windowPosition lr -startlaunchd -title '"'"$title"'"' -description '"'"$heading is currently installing..."'"' >> /tmp/jamfhelperwindow.sh
-# 		sudo sh /tmp/jamfhelperwindow.sh &
+# 		echo '"'"$jhPath"'"' -icon '"'"$icon"'"' -windowType hud -windowPosition lr -startlaunchd -title '"'"$title"'"' -description '"'"$heading is currently installing..."'"' >> /tmp/jamfhelperwindow.sh
+# 		sh /tmp/jamfhelperwindow.sh &
 # 	fi
 
 ##########################################################################################
@@ -2684,7 +2652,7 @@ $action completed."
 			fi
 
 			if [[ "$app2Open" ]] ;then
-				sudo -u "$loggedInUser" -H open -g -j "$app2Open"
+				sudo -u "$loggedInUser" -H open --hide --background "$app2Open"
 			fi
 		done
 	fi
@@ -2836,6 +2804,7 @@ fi
 # Aug 26, 2018	v3.8	--DR--	Security, macOS and Firmware added as complance policies
 # Aug 26, 2018	v3.8	--DR--	Quitting Jamf helper now acts as if you've ignored it triggering inactivity delay.
 # Aug 26, 2018	v3.8	--DR--	moved some logging to debug mode only and increase logging on UEX dialogs
+# Sep 11, 2018	v3.8	--DR--	making reopen apps function built in
 
 
 
