@@ -193,10 +193,10 @@ Your computer will be automatically restarted at the end of the countdown.'
 		restartclickbutton=`"$jhPath" -windowType hud -lockHUD -windowPostion lr -title "$title" -description "$notice" -icon "$icon" -timeout 3600 -countdown -alignCountdown center -button1 "Restart Now"`
 	
 			# force restart
-# 			sudo shutdown -r now
+			sudo shutdown -r now
 			
 			# Nicer restart (http://apple.stackexchange.com/questions/103571/using-the-terminal-command-to-shutdown-restart-and-sleep-my-mac)
-			osascript -e 'tell app "System Events" to restart'
+			# osascript -e 'tell app "System Events" to restart'
 		else
 			# force restart
 			# while no on eis logged in you can do a force shutdown

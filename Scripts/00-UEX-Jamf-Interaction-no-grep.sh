@@ -99,14 +99,14 @@ customMessage=${11}
 
 
 # fordebugging
-# NameConsolidated="Apple;Apple Software Updates;6.1.5"
-# checks="restart power quit"
-# apps="iTunes.app"
-# installDuration=60
-# maxdefer=1
-# packages=
-# triggers=softwareupdates
-# customMessage=""
+NameConsolidated="Apple;UEX DEMO;6.1.5"
+checks="quit debug"
+apps="iTunes.app;Google Chrome.app"
+installDuration=60
+maxdefer=1
+packages=
+triggers=None
+customMessage=""
 
 ##########################################################################################
 ##										FUNCTIONS										##
@@ -132,13 +132,13 @@ CocoaDialogProgressCounter=0
 trigger ()
 {
 
-	sudo $jamfBinary policy -forceNoRecon -trigger $1
+	$jamfBinary policy -forceNoRecon -trigger $1
 
 }
 
 triggerNgo ()
 {
-	sudo $jamfBinary policy -forceNoRecon -trigger $1 &
+	$jamfBinary policy -forceNoRecon -trigger $1 &
 }
 
 
@@ -680,8 +680,8 @@ if [ $debug = true ] ; then
 		pathToFolder=`dirname "$pathToPackage"`
 	fi
 	
-	sudo mkdir -p "$debugDIR" > /dev/null 2>&1
-	sudo touch "$debugDIR""$packageName"
+	mkdir -p "$debugDIR" > /dev/null 2>&1
+	touch "$debugDIR""$packageName"
 fi
 ##########################################################################################
 
@@ -718,7 +718,7 @@ plistFolders=(
 
 for i in "${plistFolders[@]}" ; do 
 	if [ ! -e "$i" ] ; then 
-		sudo mkdir "$i" > /dev/null 2>&1 
+		mkdir "$i" > /dev/null 2>&1 
 	fi 
 done
 
@@ -727,16 +727,16 @@ done
 ##########################################################################################
 ##								FIX	PERMISSIONS ON RESOURCES							##
 ##########################################################################################
-sudo chmod 644 /Library/LaunchDaemons/com.adidas-group.UEX-*  > /dev/null 2>&1
-sudo chmod -R 755 /Library/Application\ Support/JAMF/UEX  > /dev/null 2>&1
+chmod 644 /Library/LaunchDaemons/com.adidas-group.UEX-*  > /dev/null 2>&1
+chmod -R 755 /Library/Application\ Support/JAMF/UEX  > /dev/null 2>&1
 ##########################################################################################
 
 
 ##########################################################################################
 ##								FIX	ONWERSHIP ON RESOURCES								##
 ##########################################################################################
-sudo chown root:wheel /Library/LaunchDaemons/com.adidas-group.UEX-* > /dev/null 2>&1
-sudo chown -R root:wheel /Library/Application\ Support/JAMF/UEX > /dev/null 2>&1
+chown root:wheel /Library/LaunchDaemons/com.adidas-group.UEX-* > /dev/null 2>&1
+chown -R root:wheel /Library/Application\ Support/JAMF/UEX > /dev/null 2>&1
 ##########################################################################################
 
 ##########################################################################################
@@ -748,15 +748,15 @@ logdir="/Library/Application Support/JAMF/UEX/UEX_Logs/"
 resulttmp="$logname"_result.log
 
 
-sudo mkdir "$logdir" > /dev/null 2>&1
-sudo chmod -R 755 "$logdir"
+mkdir "$logdir" > /dev/null 2>&1
+chmod -R 755 "$logdir"
 
 logfilepath="$logdir""$logfilename"
 resultlogfilepath="$logdir""$resulttmp"
 
 
 logInUEX () {
-	sudo echo $(date)	$compname	:	"$1" >> "$logfilepath"
+	echo $(date)	$compname	:	"$1" >> "$logfilepath"
 }
 
 logInUEX4DebugMode () {
@@ -767,7 +767,7 @@ logInUEX4DebugMode () {
 }
 
 log4_JSS () {
-	sudo echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
+	echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
 }
 
 fn_execute_log4_JSS () {
@@ -800,12 +800,27 @@ check4Packages () {
 
 fn_generatateApps2quit () {
 	apps2quit=()
+	apps2ReOpen=()
+	apps2kill=()
 	for app in "${apps[@]}" ; do
 		IFS=$'\n'
 		appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
-	# 	echo Processing application $app
+		# Processing application $app
 		if  [ "$appid" != "" ] ; then
-			apps2quit+=(${app})
+				app2Open=""
+				appFound=""
+				userAppFound=""
+				# Find the apss in /Applications/ and ~/Applications/ and open as the user
+				appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$app"`
+				userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$app"`
+				
+				if [[ "$appFound" ]] || [[ "$userAppFound" ]]; then
+					apps2ReOpen+=(${app})
+					apps2kill+=(${app})
+				else
+					apps2quit+=(${app})
+					apps2kill+=(${app})
+				fi
 			log4_JSS "$app is stil running. Notifiying user"
 		fi
 	done
@@ -813,10 +828,10 @@ fn_generatateApps2quit () {
 }
 
 linkaddress="/Library/Logs/"
-sudo ln -s "$logdir" "$linkaddress" > /dev/null 2>&1
+ln -s "$logdir" "$linkaddress" > /dev/null 2>&1
 
 compname=`scutil --get ComputerName`
-sudo chmod -R 777 "$logdir"
+chmod -R 777 "$logdir"
 
 #Empty lines
 logInUEX "" 
@@ -1142,10 +1157,10 @@ if [[ "$checks" == *"block"* ]] ; then
 		IFS=$'\n'
 		loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
 		
-		appfound=`sudo /usr/bin/find /Applications -maxdepth 3 -iname "$app"`
+		appfound=`/usr/bin/find /Applications -maxdepth 3 -iname "$app"`
 		
 		if [ -e /Users/"$loggedInUser"/Applications/ ] ; then
-			userappfound=`sudo /usr/bin/find /Users/"$loggedInUser"/Applications/ -maxdepth 3 -iname "$app"`
+			userappfound=`/usr/bin/find /Users/"$loggedInUser"/Applications/ -maxdepth 3 -iname "$app"`
 		fi
 		
 # 		altpathsfound=""
@@ -1156,11 +1171,11 @@ if [[ "$checks" == *"block"* ]] ; then
 				altuserpath="/Users/${loggedInUser}${altpathshort}"
 				
 				if [ -e "$altuserpath" ] ; then 
-				foundappinalthpath=`sudo /usr/bin/find "$altuserpath" -maxdepth 3 -iname "$app"`
+				foundappinalthpath=`/usr/bin/find "$altuserpath" -maxdepth 3 -iname "$app"`
 				fi
 			else
 				if [ -e "$altpath" ] ; then		
-					foundappinalthpath=`sudo /usr/bin/find "$altpath" -maxdepth 3 -iname "$app"`
+					foundappinalthpath=`/usr/bin/find "$altpath" -maxdepth 3 -iname "$app"`
 				fi
 			fi
 			
@@ -1243,7 +1258,9 @@ for app2quit in "${apps2quit[@]}" ; do
 done
 
 # apps4dialogquit=$( IFS=$'\n'; printf '• Quit %s\n' $( echo "${apps[*]}" | sed 's/.\{4\}$//') )
+
 apps4dialogquit=$( IFS=$'\n'; printf '%-25s\t%-25s\n' $( echo "${apps2quit[*]}" | sed 's/.\{4\}$//') )
+apps4dialogreopen=$( IFS=$'\n'; printf '%-25s\t%-25s\n' $( echo "${apps2ReOpen[*]}" | sed 's/.\{4\}$//') )
 apps4dialogblock=$( IFS=$'\n'; printf '%-25s\t%-25s\n' $( echo "${appsinstalled[*]}" | sed 's/.\{4\}$//') )
 ##########################################################################################
 ## 									Logout and restart Processing						##
@@ -1317,7 +1334,7 @@ if [[ $installDuration -gt 10 ]] ; then
 "
 fi
 
-if [[ $checks == *"quit"* ]] || [[ "$checks" == *"saveallwork"* ]] || [[ $checks == *"block"* ]] && [[ "$checks" != *"custom"* ]]  ; then
+if [[ $checks == *"quit"* ]] && [[ "${apps2quit[@]}" == *".app"*  ]] || [[ "$checks" == *"saveallwork"* ]] || [[ $checks == *"block"* ]] && [[ "$checks" != *"custom"* ]]  ; then
 	PostponeMsg+="Before the $action starts:
 "
 elif [[ "$Laptop" ]] && [[ $checks == *"power"* ]] && [[ "$checks" != *"custom"* ]] ; then
@@ -1343,6 +1360,14 @@ $apps4dialogquit
 
 "
 fi
+
+if [[ "${apps2ReOpen[@]}" == *".app"*  ]] && [[ "$checks" != *"custom"* ]] ; then
+	PostponeMsg+="• These apps will quit and reopen after complete:
+$apps4dialogreopen
+
+"
+fi
+
 
 if [[ "${appsinstalled[@]}" == *".app"* ]] && [[ $checks == *"block"* ]] && [[ "$checks" != *"custom"* ]] ; then
 	PostponeMsg+="• Please do not open:
@@ -1524,10 +1549,7 @@ PostponeClickResult=""
 skipNotices="false"
 
 if [ -e /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist ] ; then 
-	# delayNumber=`/usr/libexec/PlistBuddy -c "print delayNumber" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
-	# presentationDelayNumber=`/usr/libexec/PlistBuddy -c "print presentationDelayNumber" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
-	# inactivityDelay=`/usr/libexec/PlistBuddy -c "print inactivityDelay" /Library/Application\ Support/JAMF/UEX/defer_jss/"$packageName".plist 2>/dev/null`
-	
+
 	delayNumber=$(fn_getPlistValue "delayNumber" "defer_jss" "$packageName.plist")
 	presentationDelayNumber=$(fn_getPlistValue "presentationDelayNumber" "defer_jss" "$packageName.plist")
 	inactivityDelay=$(fn_getPlistValue "inactivityDelay" "defer_jss" "$packageName.plist")
@@ -1642,12 +1664,12 @@ while [ $reqlooper = 1 ] ; do
 		checks="${checks/logout/}"
 		skipNotices=true
 		skipOver=true
-	elif [ -z "$apps2quit" ] && [[ $checks == *"quit"* ]] && [[ $checks != *"restart"* ]] && [[ $checks != *"logout"* ]] && [[ $checks != *"notify"* ]] ; then
+	elif [ -z "$apps2quit" ] && [ -z "$apps2ReOpen" ] && [[ $checks == *"quit"* ]] && [[ $checks != *"restart"* ]] && [[ $checks != *"logout"* ]] && [[ $checks != *"notify"* ]] ; then
 		log4_JSS "No apps need to be quit so $action can occur."
 		echo 0 > $PostponeClickResultFile &
 		PostponeClickResult=0
 		skipNotices=true
-	elif [[ "$presentationRunning" = true ]] && [[ $presentationDelayNumber -lt 3 ]] && [ $selfservicePackage != true ] && [[ $checks != *"critical"* ]] ; then
+	elif [[ "$presentationRunning" = true ]] && [[ $presentationDelayNumber -lt 3 ]] && [ $selfservicePackage != true ] && [[ $checks != *"critical"* ]]  ; then
 		echo 3600 > $PostponeClickResultFile &
 		PostponeClickResult=3600
 		presentationDelayNumber=$((presentationDelayNumber+1))
@@ -1803,7 +1825,8 @@ while [ $reqlooper = 1 ] ; do
 	fn_generatateApps2quit
 
 	apps4dialogquit=$( IFS=$'\n'; printf '%-25s\t%-25s\n' $( echo "${apps2quit[*]}" | sed 's/.\{4\}$//') )
-
+	apps4dialogreopen=$( IFS=$'\n'; printf '%-25s\t%-25s\n' $( echo "${apps2ReOpen[*]}" | sed 's/.\{4\}$//') )
+	
 	areyousureHeading="Please save your work"
 
 	if [[ "$checks" == *"saveallwork"* ]]; then
@@ -1814,6 +1837,7 @@ $actionation cannot begin until the apps below are closed:
 "
 		areyousureMessage+="
 $apps4dialogquit
+$apps4dialogreopen
 "
 	fi #if save all work is set 
 	
@@ -1823,7 +1847,7 @@ Current work may be lost if you do not save before proceeding."
 	areYouSure=""
 	logInUEX "skipNotices is $skipNotices"
 	if [ "$skipNotices" != true ] ; then
-		if [[ "$apps2quit" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$checks" == *"saveallwork"* ]] && [ -z $PostponeClickResult ] ; then
+		if [[ "$apps2quit" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$apps2ReOpen" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$checks" == *"saveallwork"* ]] && [ -z $PostponeClickResult ] ; then
 			if [[ $checks == *"critical"* ]] || [[ $delayNumber -ge $maxdefer ]] ; then
 				areYouSure=$( "$jhPath" -windowType hud -lockHUD -icon "$icon" -title "$title" -heading "$areyousureHeading" -description "$areyousureMessage" -button1 "Continue" -timeout 300 -countdown)
 			else
@@ -2129,7 +2153,7 @@ starting $action..."
 		if [ -z "$loggedInUser" ] ; then 
 # 		"$jhPath" -icon "$icon" -windowType hud -windowPosition lr -startlaunchd -title "$title" -description "$status" -timeout 5 > /dev/null 2>&1 &
 
-sudo /bin/rm /Library/LaunchAgents/com.adidas.jamfhelper.plist > /dev/null 2>&1 
+/bin/rm /Library/LaunchAgents/com.adidas.jamfhelper.plist > /dev/null 2>&1 
 cat <<EOT >> /Library/LaunchAgents/com.adidas.jamfhelper.plist 
 <?xml version="1.0" encoding="UTF-8"?> 
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> 
@@ -2160,15 +2184,15 @@ cat <<EOT >> /Library/LaunchAgents/com.adidas.jamfhelper.plist
 </plist>
 EOT
 
-sudo chown root:wheel /Library/LaunchAgents/com.adidas.jamfhelper.plist
-sudo chmod 644 /Library/LaunchAgents/com.adidas.jamfhelper.plist
+chown root:wheel /Library/LaunchAgents/com.adidas.jamfhelper.plist
+chmod 644 /Library/LaunchAgents/com.adidas.jamfhelper.plist
 
-sudo launchctl load /Library/LaunchAgents/com.adidas.jamfhelper.plist
+launchctl load /Library/LaunchAgents/com.adidas.jamfhelper.plist
 
 sleep 5
-sudo killall loginwindow > /dev/null 2>&1
+killall loginwindow > /dev/null 2>&1
 sleep 1
-sudo rm /Library/LaunchAgents/com.adidas.jamfhelper.plist
+rm /Library/LaunchAgents/com.adidas.jamfhelper.plist
 
 fi # no on logged in
 
@@ -2188,9 +2212,9 @@ fi # no on logged in
 		# Generate the list of apps still running that need to
 		fn_generatateApps2quit
 
-		if [[ $apps2quit != "" ]] ; then
+		if [[ $apps2kill != "" ]] ; then
 			apps2Relaunch=()
-			for app in "${apps2quit[@]}" ; do
+			for app in "${apps2kill[@]}" ; do
 				IFS=$'\n'
 				appid=`ps aux | grep "$app"/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
 				# Processing application $app
@@ -2412,11 +2436,11 @@ cat <<EOT >> "$pleaseWaitDaemon"
 </plist>
 EOT
 
-		sudo chown root:wheel "$pleaseWaitDaemon"
-		sudo chmod 644 "$pleaseWaitDaemon"
+		chown root:wheel "$pleaseWaitDaemon"
+		chmod 644 "$pleaseWaitDaemon"
 
-		sudo launchctl load -w "$pleaseWaitDaemon"
-		sudo launchctl start -w "$pleaseWaitDaemon"
+		launchctl load -w "$pleaseWaitDaemon"
+		launchctl start -w "$pleaseWaitDaemon"
 
 		
 		# Launch the service to cycle through apps or logout/restart requirement
@@ -2424,25 +2448,25 @@ EOT
 		triggerNgo PleaseWaitUpdater
 		
 		# Sets the Initial Values 
-		sudo echo "Installation in progress..." > $pleasewaitPhase
-		sudo echo "Please Wait..." > $pleasewaitProgress
-		sudo echo "100" > $pleasewaitInstallProgress
+		echo "Installation in progress..." > $pleasewaitPhase
+		echo "Please Wait..." > $pleasewaitProgress
+		echo "100" > $pleasewaitInstallProgress
 		
 		# Sets the Initial Values 
 		if [ "$suspackage" = true ] ; then
-			sudo echo "Software Updates in progress" > $pleasewaitPhase
+			echo "Software Updates in progress" > $pleasewaitPhase
 			# sudo chflags uchg $pleasewaitPhase > /dev/null 2>&1
  			# sudo chflags schg $pleasewaitPhase > /dev/null 2>&1
 		fi
 		
 		sleep 2
-		sudo echo "$actioncap in progress..." > $pleasewaitPhase
-		sudo echo "Now $actioning" "$heading" > $pleasewaitProgress
+		echo "$actioncap in progress..." > $pleasewaitPhase
+		echo "Now $actioning" "$heading" > $pleasewaitProgress
 		
 		# reset failsafe to change to the name of the installation
 		# gives an indication of progress 
 
-		sudo echo "100" > $pleasewaitInstallProgress
+		echo "100" > $pleasewaitInstallProgress
 	
 	fi # long install with skipnotices off
 	
@@ -2464,7 +2488,7 @@ EOT
 	
 	
 	# Empty install folder
-	sudo /bin/rm "$installJSSfolder"*
+	/bin/rm "$installJSSfolder"*
 	
 	# Install notification Place holder
 	# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
@@ -2482,12 +2506,12 @@ EOT
 				trigger diagblock
 			fi
 			
-			fn_execute_log4_JSS "sudo softwareupdate -i --all"
+			fn_execute_log4_JSS "softwareupdate -i --all -R"
 		else
 			logInUEX "Skipping uex no updates required"
 		fi
 	
-		sudo /bin/rm "$swulog" > /dev/null 2>&1
+		/bin/rm "$swulog" > /dev/null 2>&1
 	
 	fi
 	
@@ -2500,12 +2524,12 @@ EOT
 			logInUEX "Starting Install"
 			
 			if [[ "$PKG" == *".dmg" ]] && [[ "$checks" == *"feu"* ]] && [[ "$checks" == *"fut"* ]]; then 
-				sudo "$jamfBinary" install -package "$PKG" -path "$pathtopkg" -feu -fut -target / | /usr/bin/tee -a "$resultlogfilepath"
+				"$jamfBinary" install -package "$PKG" -path "$pathtopkg" -feu -fut -target / | /usr/bin/tee -a "$resultlogfilepath"
 				
 			elif [[ "$PKG" == *".dmg" ]] && [[ "$checks" == *"fut"* ]]; then
-				sudo "$jamfBinary" install -package "$PKG" -path "$pathtopkg" -fut -target / | /usr/bin/tee -a "$resultlogfilepath"
+				"$jamfBinary" install -package "$PKG" -path "$pathtopkg" -fut -target / | /usr/bin/tee -a "$resultlogfilepath"
 			else
-				sudo "$jamfBinary" install -package "$PKG" -path "$pathtopkg" -target / | /usr/bin/tee -a "$resultlogfilepath"
+				"$jamfBinary" install -package "$PKG" -path "$pathtopkg" -target / | /usr/bin/tee -a "$resultlogfilepath"
 			fi
 
 			#Debug Line
@@ -2516,23 +2540,23 @@ EOT
 				failedInstall=true
 			fi 
 			
-			sudo echo $(date)	$compname	:	RESULT: $(cat "$resultlogfilepath") >> "$logfilepath"
+			echo $(date)	$compname	:	RESULT: $(cat "$resultlogfilepath") >> "$logfilepath"
 	
 			logInUEX "Install Completed"
 			# Deleting the package from temp directory
 			if [[ $type == "package" ]] ; then
 				logInUEX "Deleting the package from temp directory"
 				logInUEX "Deleting $PKG"
-				sudo /bin/rm "$pkg2install" >& "$resultlogfilepath"
-				sudo echo $(date)	$compname	:	RESULT: $(cat "$resultlogfilepath") >> "$logfilepath"
+				/bin/rm "$pkg2install" >& "$resultlogfilepath"
+				echo $(date)	$compname	:	RESULT: $(cat "$resultlogfilepath") >> "$logfilepath"
 			fi
 		done
 	fi
 	
 	if [[ $checks == *"trigger"* ]] ; then
 		for trigger in ${triggers[@]} ; do
-			echo sudo "$jamfBinary" policy -forceNoRecon -trigger "$trigger"
-			sudo "$jamfBinary" policy -forceNoRecon -trigger "$trigger" | /usr/bin/tee -a "$logfilepath"
+			echo "$jamfBinary" policy -forceNoRecon -trigger "$trigger"
+			"$jamfBinary" policy -forceNoRecon -trigger "$trigger" | /usr/bin/tee -a "$logfilepath"
 		done
 	fi
 		
@@ -2569,7 +2593,7 @@ EOT
 		deferPolicyTrigger=$(fn_getPlistValue "policyTrigger" "defer_jss" "$i")
 		if [[ "$deferPolicyTrigger" == "$UEXpolicyTrigger" ]]; then
 			log4_JSS "Deleting $i"
-			sudo /bin/rm /Library/Application\ Support/JAMF/UEX/defer_jss/"$i" > /dev/null 2>&1
+			/bin/rm /Library/Application\ Support/JAMF/UEX/defer_jss/"$i" > /dev/null 2>&1
 		fi
 	done
 	
@@ -2594,28 +2618,28 @@ EOT
 	launchcltList=`launchctl list`
 	if [[ "$launchcltList" == *"com.adidas-group.UEX-PleaseWait"* ]]; then
 		#statements
-		fn_execute_log4_JSS "sudo launchctl unload -w $pleaseWaitDaemon"
+		fn_execute_log4_JSS "launchctl unload -w $pleaseWaitDaemon"
 	fi
 	
 	killall PleaseWait > /dev/null 2>&1
 	
 	# delete the daemon for cleanup
 	
-	sudo /bin/rm "$pleaseWaitDaemon" > /dev/null 2>&1
+	/bin/rm "$pleaseWaitDaemon" > /dev/null 2>&1
 	
 	# kill the app and clean up the files
-	sudo echo $(date)	$compname	:	Quitting the PleaseWait application. >> "$logfilepath"
+	echo $(date)	$compname	:	Quitting the PleaseWait application. >> "$logfilepath"
 	killall PleaseWait > /dev/null 2>&1
 	
-	sudo chflags nouchg $pleasewaitPhase > /dev/null 2>&1
-	sudo chflags noschg $pleasewaitPhase > /dev/null 2>&1
+	chflags nouchg $pleasewaitPhase > /dev/null 2>&1
+	chflags noschg $pleasewaitPhase > /dev/null 2>&1
 	
-	sudo /bin/rm $pleasewaitPhase > /dev/null 2>&1
-	sudo /bin/rm $pleasewaitProgress > /dev/null 2>&1
-	sudo /bin/rm $pleasewaitInstallProgress > /dev/null 2>&1
+	/bin/rm $pleasewaitPhase > /dev/null 2>&1
+	/bin/rm $pleasewaitProgress > /dev/null 2>&1
+	/bin/rm $pleasewaitInstallProgress > /dev/null 2>&1
 	
 	# delete place holder
-	sudo /bin/rm /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
+	/bin/rm /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
 
 
 	###########################
@@ -2624,7 +2648,7 @@ EOT
 	
 	#stop the currently installing if no one is logged in
 	if [ -z $loggedInUser ] ; then
-		sudo killall jamfHelper
+		killall jamfHelper
 		
 	fi
 	
@@ -2644,26 +2668,26 @@ $action completed."
 	# reopen apps      #
 	#####################
 	# keeping beta until ready
-	# if [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]]; then
-	# 	for relaunchAppName in "${apps2Relaunch[@]}" ; do 
-	# 		app2Open=""
-	# 		appFound=""
-	# 		userAppFound=""
-	# 		# Find the apss in /Applications/ and ~/Applications/ and open as the user
-	# 		appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$relaunchAppName"`
-	# 		userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$relaunchAppName"`
+	if [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]]; then
+		for relaunchAppName in "${apps2Relaunch[@]}" ; do 
+			app2Open=""
+			appFound=""
+			userAppFound=""
+			# Find the apss in /Applications/ and ~/Applications/ and open as the user
+			appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$relaunchAppName"`
+			userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$relaunchAppName"`
 			
-	# 		if [[ "$appFound" ]]; then
-	# 			app2Open="$appFound"
-	# 		elif [[ "$userAppFound" ]]; then
-	# 			app2Open="$userAppFound"
-	# 		fi
+			if [[ "$appFound" ]]; then
+				app2Open="$appFound"
+			elif [[ "$userAppFound" ]]; then
+				app2Open="$userAppFound"
+			fi
 
-	# 		if [[ "$app2Open" ]] ;then
-	# 			sudo -u "$loggedInUser" -H open "$app2Open"
-	# 		fi
-	# 	done
-	# fi
+			if [[ "$app2Open" ]] ;then
+				sudo -u "$loggedInUser" -H open -g -j "$app2Open"
+			fi
+		done
+	fi
 	
 	
 	#####################
@@ -2672,11 +2696,11 @@ $action completed."
 	if [[ "$checks" == *"block"* ]] ; then
 		# delete the plist with properties to stop blocking
 		logInUEX "Deleting the blocking plist"
-		sudo /bin/rm "/Library/Application Support/JAMF/UEX/block_jss/${packageName}.plist" > /dev/null 2>&1
+		/bin/rm "/Library/Application Support/JAMF/UEX/block_jss/${packageName}.plist" > /dev/null 2>&1
 		
 		#kill all cocoaDialog windows 
 		logInUEX "Killing cocoadialog window"
-		sudo kill $(ps -e | grep cocoaDialog | grep -v grep | awk '{print $1}') > /dev/null 2>&1
+		kill $(ps -e | grep cocoaDialog | grep -v grep | awk '{print $1}') > /dev/null 2>&1
 	fi
 
 	#####################
@@ -2710,10 +2734,10 @@ fi
 
 if [ $selfservicePackage = true ] ; then
 	 logInUEX "removing self service placeholder"
-	sudo /bin/rm "$SSplaceholderDIR""$packageName" > /dev/null 2>&1
+	/bin/rm "$SSplaceholderDIR""$packageName" > /dev/null 2>&1
 fi
 
-sudo /bin/rm "$debugDIR""$packageName" > /dev/null 2>&1
+/bin/rm "$debugDIR""$packageName" > /dev/null 2>&1
 
 
 ##########################################################################################
@@ -2753,7 +2777,7 @@ fi # Installations
 ##########################################################################################
 rm "$resultlogfilepath" > /dev/null 2>&1 
 
-sudo /bin/rm /Library/LaunchAgents/com.adidas.jamfhelper.plist > /dev/null 2>&1 
+/bin/rm /Library/LaunchAgents/com.adidas.jamfhelper.plist > /dev/null 2>&1 
 
 if [[ "$InventoryUpdateRequired" = true ]] ;then 
 	log4_JSS "Inventory Update Required"
@@ -2762,8 +2786,8 @@ fi
 
 
 logInUEX "******* script complete *******"
-sudo echo "" >> "$logfilepath"
-sudo echo "" >> "$logfilepath"
+echo "" >> "$logfilepath"
+echo "" >> "$logfilepath"
 
 if [ "$failedInstall" = true ] ; then 
 	exit 1
