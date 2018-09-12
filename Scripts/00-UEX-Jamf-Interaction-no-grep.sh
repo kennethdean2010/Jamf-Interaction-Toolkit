@@ -99,14 +99,14 @@ customMessage=${11}
 
 
 # fordebugging
-NameConsolidated="Apple;UEX DEMO;6.1.5"
-checks="quit debug"
-apps="Google Chrome.app"
-installDuration=60
-maxdefer=1
-packages=
-triggers=None
-customMessage=""
+# NameConsolidated="Apple;UEX DEMO;6.1.5"
+# checks="quit debug"
+# apps="Microsoft PowerPoint.app"
+# installDuration=60
+# maxdefer=1
+# packages=
+# triggers=None
+# customMessage=""
 
 ##########################################################################################
 ##										FUNCTIONS										##
@@ -1206,7 +1206,7 @@ if [[ "$checks" == *"block"* ]] ; then
 			
 			if [[ "$foundappinalthpath" != "" ]] ; then 
 				altpathsfound+=(${foundappinalthpath})
-				logInUEX "Application $app was found in $altpath"
+				logInUEX4DebugMode "Application $app was found in $altpath"
 			else
 				logInUEX4DebugMode "Application $app not found in $altpath"
 			fi
@@ -1250,6 +1250,7 @@ if [[ $checks == *"block"* ]] && [[ $appsinstalled == "" ]] ; then
 	# original_string='i love Suzi and Marry'
 	# string_to_replace_Suzi_with=Sara
 	# result_string="${original_string/Suzi/$string_to_replace_Suzi_with}"
+	log4_JSS "No apps are isntalled so change the block to a quit"
 	checks="${checks/block/quit}"
 fi
 
@@ -1273,6 +1274,16 @@ fi
 # modify lists for quitting and removing apps from lists
 for app2quit in "${apps2quit[@]}" ; do
 	delete_me=$app2quit
+	for i in ${!appsinstalled[@]};do
+		if [ "${appsinstalled[$i]}" == "$delete_me" ]; then
+			unset appsinstalled[$i]
+		fi 
+	done
+done
+
+# modify lists for quitting and removing apps from lists
+for app2reopen in "${apps2ReOpen[@]}" ; do
+	delete_me=$app2reopen
 	for i in ${!appsinstalled[@]};do
 		if [ "${appsinstalled[$i]}" == "$delete_me" ]; then
 			unset appsinstalled[$i]
@@ -1643,7 +1654,7 @@ if [[ "$loggedInUser" != root ]] ; then
 ##########################################################################################
 
 presentationApps=(
-"Microsoft PowerPoint.app"
+# "Microsoft PowerPoint.app"
 "Keynote.app"
 "VidyoDesktop.app"
 "Vidyo Desktop.app"
@@ -1749,12 +1760,16 @@ while [ $reqlooper = 1 ] ; do
 			killall jamfHelper
 		fi
 
+	##########################################################################################
+	##						Detect a quit while the install window is open					##
+	##########################################################################################
+		
 		if [[ "$checks" == *"quit"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
-			echo CHECKING IF APPS ARE QUIT
+			# Start the function to kill jamfHelper and start the isntall if apps are quit
 			fn_waitForApps2Quit
 
-		elif [[ "$checks" == *"block"* ]] && [[ "${apps2quit[@]}" == *".app"*  ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
-			echo CHECKING IF APPS ARE QUIT
+		elif [[ "$checks" == *"block"* ]] && [[ "${apps2ReOpen[@]}" == *".app"*  ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
+			# Start the function to kill jamfHelper and start the isntall if apps are quit
 			fn_waitForApps2Quit
 		fi
 
@@ -1867,7 +1882,7 @@ while [ $reqlooper = 1 ] ; do
 		areyousureMessage="Please save ALL your work before clicking continue."
 	else # use for quigign spefic apps
 		areyousureMessage="Please save your work before clicking continue.
-$actionation cannot begin until the apps below are closed:
+These apps will be quit:
 "
 		areyousureMessage+="
 $apps4dialogquit
@@ -1882,6 +1897,46 @@ Current work may be lost if you do not save before proceeding."
 	logInUEX "skipNotices is $skipNotices"
 	if [ "$skipNotices" != true ] ; then
 		if [[ "$apps2quit" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$apps2ReOpen" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$checks" == *"saveallwork"* ]] && [ -z $PostponeClickResult ] ; then
+			
+
+		#####################
+		# 		Quit	 	#
+		#####################
+
+
+			fn_generatateApps2quit
+
+			if [[ $apps2kill != "" ]] ; then
+
+				# if the app to re launc is not blank it means the apps wer quit manuaully when the isntall window was up
+				if 	[ -z "${apps2Relaunch[@]}" ] ; then
+					apps2Relaunch=()
+				fi
+				for app in "${apps2kill[@]}" ; do
+					IFS=$'\n'
+					appid=`ps aux | grep "$app"/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
+					# Processing application $app
+						if  [[ $appid != "" ]] ; then
+							for id in $appid; do
+								# Application  $app is still running.
+								# Killing $app. pid is $id 
+								log4_JSS "$app is still running. Quitting app."
+								apps2Relaunch+=($app)
+								log4_JSS "Re-opening $app"
+								sudo -u "$loggedInUser" -H osascript -e "activate app \"$app\""
+								sudo -u "$loggedInUser" -H osascript -e "quit app \"$app\""
+							done 
+						fi
+				done
+				unset IFS
+			fi
+		fi
+
+		sleep 1
+		fn_generatateApps2quit
+
+		if [[ "$apps2quit" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$apps2ReOpen" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$checks" == *"saveallwork"* ]] && [ -z $PostponeClickResult ] ; then
+
 			if [[ $checks == *"critical"* ]] || [[ $delayNumber -ge $maxdefer ]] ; then
 				areYouSure=$( "$jhPath" -windowType hud -lockHUD -icon "$icon" -title "$title" -heading "$areyousureHeading" -description "$areyousureMessage" -button1 "Continue" -timeout 300 -countdown)
 			else
@@ -2225,16 +2280,17 @@ fi # no on logged in
 							# Killing $app. pid is $id 
 							log4_JSS "$app is still running. Quitting app."
 							apps2Relaunch+=($app)
-							log4_JSS "Re-opening $app"
-							osascript -e "quit app \"$app\""
-							# kill $id
-							# sleep 1
-							# processstatus=`ps -p $id`
-							# if [[ "$processstatus" == *"$id"* ]]; then
-							# 	#statements
-							# 	log4_JSS "The process $id was still running for application $app. Force killing Application."
-							# 	kill -9 $id
-							# fi 
+							# log4_JSS "Re-opening $app"
+							# osascript -e "activate app \"$app\""
+							# osascript -e "quit app \"$app\""
+							kill $id
+							sleep 1
+							processstatus=`ps -p $id`
+							if [[ "$processstatus" == *"$id"* ]]; then
+								#statements
+								log4_JSS "The process $id was still running for application $app. Force killing Application."
+								kill -9 $id
+							fi 
 						done 
 					fi
 			done
@@ -2257,6 +2313,7 @@ fi # no on logged in
 						# Application  $app is still running.
 						# Killing $app. pid is $id 
 						log4_JSS "$app is still running. Quitting app."
+						apps2Relaunch+=($app)
 						kill $id
 						processstatus=`ps -p $id`
 							if [[ "$processstatus" == *"$id"* ]]; then
@@ -2635,7 +2692,6 @@ $action completed."
 	#####################
 	# reopen apps      #
 	#####################
-	# keeping beta until ready
 	if [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]]; then
 		for relaunchAppName in "${apps2Relaunch[@]}" ; do 
 			app2Open=""
@@ -2652,7 +2708,8 @@ $action completed."
 			fi
 
 			if [[ "$app2Open" ]] ;then
-				sudo -u "$loggedInUser" -H open --hide --background "$app2Open"
+				# open the app as the user but in the bacground to it doesn't pull focus
+				sudo -u "$loggedInUser" open -g "$app2Open"
 			fi
 		done
 	fi
