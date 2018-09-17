@@ -112,7 +112,6 @@ lastRebootFriendly=`date -r$lastReboot`
 rundate=`date +%s`
 
 resartPlists=`ls /Library/Application\ Support/JAMF/UEX/restart_jss/ | grep ".plist"`
-
 set -- "$resartPlists"
 IFS=$'\n' ; declare -a resartPlists=($*)  
 unset IFS
@@ -144,9 +143,6 @@ for i in "${resartPlists[@]}" ; do
 	# Check all the plist in the folder for any required actions
 	# if the user has already had a fresh restart then delete the plist
 	# other wise the advise and schedule the logout.
-	# name=`/usr/libexec/PlistBuddy -c "print name" /Library/Application\ Support/JAMF/UEX/restart_jss/"$i"`
-	# packageName=`/usr/libexec/PlistBuddy -c "print packageName" /Library/Application\ Support/JAMF/UEX/restart_jss/"$i"`
-	# plistrunDate=`/usr/libexec/PlistBuddy -c "print runDate" "/Library/Application Support/JAMF/UEX/restart_jss/$i"`
 
 	name=$(fn_getPlistValue "name" "restart_jss" "$i")
 	packageName=$(fn_getPlistValue "packageName" "restart_jss" "$i")
@@ -161,14 +157,19 @@ for i in "${resartPlists[@]}" ; do
 	logfilepath="$logdir""$logfilename"
 	resultlogfilepath="$logdir""$resulttmp"
 	
-	if [[ $timeSinceReboot -gt 0 ]] || [ -z "$plistrunDate" ] ; then
+	if [[ $timeSinceReboot -gt 0 ]] || [ -z "$plistrunDate" ]  ; then
 		# the computer has rebooted since $runDateFriendly
 		#delete the plist
+		logInUEX "Deleting the restart plsit $i because the computer has rebooted since $runDateFriendly"
 		sudo rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
 	else 
 		# the computer has NOT rebooted since $runDateFriendly
+		lastline=`awk 'END{print}' "$logfilepath"`
+		if [[ "$lastline" != *"Prompting the user"* ]] ; then 
+			logInUEX "The computer has NOT rebooted since $runDateFriendly"
+			logInUEX "Prompting the user that a restart is required"
+		fi
 		restart="true"
-		
 	fi
 done
 
@@ -181,11 +182,6 @@ if [[ $restart != "true" ]] ; then
 	# If the plist has already been touched 
 	# OR if the user has already had a fresh login then delete the plist
 	# other wise the advise and schedule the logout.
-		# name=`/usr/libexec/PlistBuddy -c "print name" "/Library/Application Support/JAMF/UEX/logout_jss/$i"`
-		# packageName=`/usr/libexec/PlistBuddy -c "print packageName" "/Library/Application Support/JAMF/UEX/logout_jss/$i"`
-		# plistloggedInUser=`/usr/libexec/PlistBuddy -c "print loggedInUser" "/Library/Application Support/JAMF/UEX/logout_jss/$i"`
-		# checked=`/usr/libexec/PlistBuddy -c "print checked" "/Library/Application Support/JAMF/UEX/logout_jss/$i"`
-		# plistrunDate=`/usr/libexec/PlistBuddy -c "print runDate" "/Library/Application Support/JAMF/UEX/logout_jss/$i"`
 
 		name=$(fn_getPlistValue "name" "logout_jss" "$i")
 		packageName=$(fn_getPlistValue "packageName" "logout_jss" "$i")
@@ -224,7 +220,6 @@ if [[ $restart != "true" ]] ; then
 		elif [[ "$plistloggedInUser" != "$loggedInUser" ]] ; then
 		# if the user in the plist is not the user as the one currently logged in do not force a logout
 		# this will skip the processing of that plist
-			killdaemon="false"
 			logInUEX "User in the logout plist is not the same user as the one currently logged in do not force a logout"
 		else 
 		# the user has NOT logged out since $plistrunDateFriendly
