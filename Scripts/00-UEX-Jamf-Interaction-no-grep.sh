@@ -1884,7 +1884,19 @@ while [ $reqlooper = 1 ] ; do
 		echo 0 > $PostponeClickResultFile &
 		PostponeClickResult=0
 		skipNotices=true
-	elif [[ "$presentationRunning" = true ]] && [[ $presentationDelayNumber -lt 3 ]] && [ $selfservicePackage != true ] && [[ "$checks" != *"critical"* ]]  ; then
+		# Only run presetation dely if the user is alllowed to postpone and has postponse avalable
+		# this means that if they exhaust postpones its because they chose to and we only wiat a max of 3 hour for them to be try and delay after that presetaion delay is not possible
+	elif [[ "$presentationRunning" = true ]] && [[ $presentationDelayNumber -lt 3 ]] && [ $selfservicePackage != true ] && [[ "$checks" != *"critical"* ]] && [[ $maxdefer -ge 1 ]] && [[ $delayNumber -lt $maxdefer ]]; then
+		echo 3600 > $PostponeClickResultFile &
+		PostponeClickResult=3600
+		presentationDelayNumber=$((presentationDelayNumber+1))
+		log4_JSS "Presentation running, delaying the install for 1 hour."
+		# subtracting 1 so that thy don't get dinged for an auto delay
+		delayNumber=$((delayNumber-1))
+		skipNotices=true
+		skipOver=true
+		# if an presetation presentation is running and the max defer is 0 or critical then allow only one presentaion delay
+	elif [[ "$presentationRunning" = true ]] && [[ $presentationDelayNumber -lt 1 ]] && [ $selfservicePackage != true ] && [[ $maxdefer = 0 ]] ; then
 		echo 3600 > $PostponeClickResultFile &
 		PostponeClickResult=3600
 		presentationDelayNumber=$((presentationDelayNumber+1))
@@ -1905,7 +1917,7 @@ while [ $reqlooper = 1 ] ; do
 		
 	else
 		logInUEX4DebugMode "Delay options are $delayOptions"
-		log4_JSS "Showing the Isntall window"
+		log4_JSS "Showing the install window"
 		if [[ "$checks" == *"critical"* ]] ; then
 			log4_JSS "Showing the install window. Critical"
 			"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
@@ -1946,11 +1958,11 @@ while [ $reqlooper = 1 ] ; do
 	##########################################################################################
 		
 		if [[ "$checks" == *"quit"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
-			# Start the function to kill jamfHelper and start the isntall if apps are quit
+			# Start the function to kill jamfHelper and start the install if apps are quit
 			fn_waitForApps2Quit
 
 		elif [[ "$checks" == *"block"* ]] && [[ "${apps2ReOpen[@]}" == *".app"*  ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
-			# Start the function to kill jamfHelper and start the isntall if apps are quit
+			# Start the function to kill jamfHelper and start the install if apps are quit
 			fn_waitForApps2Quit
 		fi
 
@@ -1970,7 +1982,7 @@ while [ $reqlooper = 1 ] ; do
 			forceInstall=true
 		fi
 
-		## compliance Checks are the only software titles that isntall without user choosing to install
+		## compliance Checks are the only software titles that install without user choosing to install
 		if [ "$forceInstall" = true ] && [[ "$checks" == *"compliance"* ]] ; then 
 			PostponeClickResult=""
 			if [[ "$checks" == *"restart"* ]] || [[ "$checks" == *"logout"* ]] ; then
@@ -2089,7 +2101,7 @@ Current work may be lost if you do not save before proceeding."
 
 			if [[ $apps2kill != "" ]] ; then
 
-				# if the app to re launc is not blank it means the apps wer quit manuaully when the isntall window was up
+				# if the app to re launc is not blank it means the apps wer quit manuaully when the install window was up
 				if 	[ -z "${apps2Relaunch[@]}" ] ; then
 					apps2Relaunch=()
 				fi
@@ -2447,7 +2459,7 @@ fi # no on logged in
 
 		if [[ $apps2kill != "" ]] ; then
 
-			# if the app to re launc is not blank it means the apps wer quit manuaully when the isntall window was up
+			# if the app to re launc is not blank it means the apps wer quit manuaully when the install window was up
 			if 	[ -z "${apps2Relaunch[@]}" ] ; then
 				apps2Relaunch=()
 			fi
@@ -3038,7 +3050,7 @@ fi
 # Apr 24, 2018 	v3.7	--DR--	Funtctions added for plist processing
 # Jun 3, 2018 	v3.7.2	--DR--	Names are generic and self service app name is dynamic
 # Jun 3, 2018 	v3.7.3	--DR--	Dynamic detection of Self Service locaiton for messaging
-# Aug 26, 2018	v3.8	--DR--	Added a compliance and force isntall mechanism for force instllatation, 
+# Aug 26, 2018	v3.8	--DR--	Added a compliance and force install mechanism for force instllatation, 
 # Aug 26, 2018	v3.8	--DR--	Security, macOS and Firmware added as complance policies
 # Aug 26, 2018	v3.8	--DR--	Quitting Jamf helper now acts as if you've ignored it triggering inactivity delay.
 # Aug 26, 2018	v3.8	--DR--	moved some logging to debug mode only and increase logging on UEX dialogs
