@@ -129,10 +129,10 @@ bCocoaDialog_DisplayIsInitialized=0
 CocoaDialogProgressCounter=0
 
 
-trigger ()
+fn_trigger ()
 {
 
-	$jamfBinary policy -forceNoRecon -trigger $1
+	fn_execute_log4_JSS "$jamfBinary policy -forceNoRecon -trigger $1"
 
 }
 
@@ -229,7 +229,7 @@ fn_waitForUserToLogout () {
 }
 
 fn_getPlistValue () {
-	/usr/libexec/PlistBuddy -c "print $1" /Library/Application\ Support/JAMF/UEX/$2/"$3" > /dev/null 2>&1
+	/usr/libexec/PlistBuddy -c "print $1" /Library/Application\ Support/JAMF/UEX/$2/"$3"
 }
 
 fn_addPlistValue () {
@@ -302,7 +302,7 @@ logInUEX () {
 logInUEX4DebugMode () {
 	if [ $debug = true ] ; then	
 		logMessage="-DEBUG- $1"
-		logInUEX $logMessage
+		logInUEX "$logMessage"
 	fi
 }
 
@@ -311,10 +311,19 @@ log4_JSS () {
 }
 
 fn_execute_log4_JSS () {
-	rm "$resultlogfilepath"
+	local dateOfCommand=`date`
+	local TMPresultlogfilepath="/private/tmp/resultsOfCommand_$dateOfCommand.log"
+
+	# echo command to run is \""$1"\"
+	# rm "$TMPresultlogfilepath" 2> /dev/null 
+	# echo TMPresultlogfilepath is "$TMPresultlogfilepath"
+	# echo ${1} >> "$resultlogfilepath"
+	
 	log4_JSS "Running command: $1"
-	$($1 | tee -a $resultlogfilepath)
-	log4_JSS "RESULT: $(cat $resultlogfilepath)"
+	$1 >>"$TMPresultlogfilepath"
+	local resultsOfCommand=`cat "$TMPresultlogfilepath"`
+	log4_JSS "RESULT: $resultsOfCommand"
+	rm "$TMPresultlogfilepath" 2> /dev/null
 }
 
 
@@ -419,7 +428,7 @@ fn_check4PendingRestartsOrLogout () {
 		local plistrunDate=$(fn_getPlistValue "runDate" "restart_jss" "$i")
 
 		local timeSinceReboot=`echo "${lastReboot} - ${plistrunDate}" | bc`		
-		logInUEX4DebugMode "timeSinceReboot is $timeSinceReboot"
+		logInUEX "timeSinceReboot is $timeSinceReboot"
 		
 		local logname=$(echo $packageName | sed 's/.\{4\}$//')
 		local logfilename="$logname".log
@@ -679,7 +688,7 @@ checking for updates..."
 	"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"	
 fi # selfservice package
 
-	trigger set_sus_server
+	fn_trigger "set_sus_server"
 	sudo softwareupdate -l > $swulog
 
 	updates=`cat $swulog`
@@ -849,7 +858,7 @@ for i in "${resources[@]}"; do
 done
 
 if [[ $missingResources = true ]] ; then
-	trigger uexresources
+	fn_trigger "uexresources"
 fi
 
 
@@ -1499,7 +1508,7 @@ fn_check4Packages ""
 
 if [[ $packageMissing = true ]] && [[ $selfservicePackage != true ]]; then
 	logInUEX4DebugMode "not selfservice" 
-	trigger "$UEXcachingTrigger"
+	fn_trigger "$UEXcachingTrigger"
 	sleep 5
 	
 	fn_check4Packages ""
@@ -1607,7 +1616,24 @@ $apps4dialogquit
 "
 fi
 
-if [[ "${apps2ReOpen[@]}" == *".app"*  ]] && [[ "$checks" != *"custom"* ]] ; then
+if [[ "${apps2quit[@]}" == *".app"*  ]] && [[ "$checks" != *"custom"* ]] && [[ "$apps2ReOpen" ]] && [[ "$checks" == *"restart"* ]] ;then
+	PostponeMsg+="$apps4dialogreopen
+"
+elif [[ "${apps2quit[@]}" == *".app"* ]] && [[ "$checks" != *"custom"* ]] && [[ "$apps2ReOpen" ]] && [[ "$checks" == *"logout"* ]] ; then
+	PostponeMsg+="$apps4dialogreopen
+"
+elif [[ "$apps2ReOpen" ]] && [[ "$checks" == *"restart"* ]] && [[ "$checks" != *"custom"* ]] ;then
+	PostponeMsg+="• Please quit:
+$apps4dialogreopen
+
+"
+elif [[ "$apps2ReOpen" ]] && [[ "$checks" == *"logout"* ]] && [[ "$checks" != *"custom"* ]] ; then
+	PostponeMsg+="• Please quit:
+$apps4dialogreopen
+
+"
+
+elif [[ "$apps2ReOpen" ]] && [[ "$checks" != *"custom"* ]] ; then
 	PostponeMsg+="• These apps will reopen after the $action:
 $apps4dialogreopen
 
@@ -1974,9 +2000,9 @@ while [ $reqlooper = 1 ] ; do
 		
 	else
 		logInUEX4DebugMode "Delay options are $delayOptions"
-		# log4_JSS "Showing the install window"
+		# log4_JSS "Showing the $action window"
 		if [[ "$checks" == *"critical"* ]] ; then
-			log4_JSS "Showing the install window. Critical"
+			log4_JSS "Showing the $action window. Critical"
 			"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 		else
 			if [ $selfservicePackage = true ] ; then 
@@ -1984,13 +2010,13 @@ while [ $reqlooper = 1 ] ; do
 			else
 
 				if [[ $delayNumber -ge $maxdefer ]] ; then 
-					log4_JSS "Showing the install window. No postpones left"
+					log4_JSS "Showing the $action window. No postpones left"
 					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 				elif [[ "$checks" == *"restart"* ]] || [[ "$checks" == *"logout"* ]] || [[ "$checks" == *"macosupgrade"* ]] || [[ "$checks" == *"loginwindow"* ]] || [[ "$checks" == *"lock"* ]] || [[ "$checks" == *"saveallwork"* ]] ; then
-					log4_JSS "Showing the install window. Allowing for install at logout. $postponesLeft postpones left"
+					log4_JSS "Showing the $action window. Allowing for $action at logout. $postponesLeft postpones left"
 					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -showDelayOptions "$delayOptions" -button1 "OK" -button2 "at Logout" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 				else
-					log4_JSS "Showing the install window. $postponesLeft postpones left."
+					log4_JSS "Showing the $action window. $postponesLeft postpones left."
 					"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -showDelayOptions "$delayOptions" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
 				fi # Max defer exceeded
 			fi # self service true
@@ -2170,9 +2196,8 @@ Current work may be lost if you do not save before proceeding."
 							for id in $appid; do
 								# Application  $app is still running.
 								# Killing $app. pid is $id 
-								log4_JSS "$app is still running. Quitting app."
 								apps2Relaunch+=($app)
-								log4_JSS "Re-opening $app"
+								log4_JSS "Safe quitting $app"
 								sudo -u "$loggedInUser" -H osascript -e "activate app \"$app\""
 								sudo -u "$loggedInUser" -H osascript -e "quit app \"$app\""
 							done 
@@ -2428,7 +2453,7 @@ fi
 Downloading packages..."
 		"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
 
-		trigger $UEXcachingTrigger
+		fn_trigger "$UEXcachingTrigger"
 
 		fn_check4Packages ""
 
@@ -2527,7 +2552,7 @@ fi # no on logged in
 						for id in $appid; do
 							# Application  $app is still running.
 							# Killing $app. pid is $id 
-							log4_JSS "$app is still running. Quitting app."
+							log4_JSS "$app is still running. Killing process id $id."
 							apps2Relaunch+=($app)
 							# log4_JSS "Re-opening $app"
 							# osascript -e "activate app \"$app\""
@@ -2776,7 +2801,7 @@ EOT
 			logInUEX "Starting software updates"
 			
 			if [ $diagblock = true ] ; then
-				trigger diagblock
+				fn_trigger "diagblock"
 			fi
 			
 			fn_execute_log4_JSS "softwareupdate -i --all -R"
@@ -2828,8 +2853,10 @@ EOT
 	
 	if [[ "$checks" == *"trigger"* ]] ; then
 		for trigger in ${triggers[@]} ; do
-			echo "$jamfBinary" policy -forceNoRecon -trigger "$trigger"
-			"$jamfBinary" policy -forceNoRecon -trigger "$trigger" | /usr/bin/tee -a "$logfilepath"
+
+			fn_trigger "$trigger"
+			# echo "$jamfBinary" policy -forceNoRecon -trigger "$trigger"
+			# "$jamfBinary" policy -forceNoRecon -trigger "$trigger" | /usr/bin/tee -a "$logfilepath"
 		done
 	fi
 		
