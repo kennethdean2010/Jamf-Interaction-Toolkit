@@ -229,18 +229,18 @@ fn_waitForUserToLogout () {
 }
 
 fn_getPlistValue () {
-	/usr/libexec/PlistBuddy -c "print $1" /Library/Application\ Support/JAMF/UEX/$2/"$3"
+	/usr/libexec/PlistBuddy -c "print $1" /Library/Application\ Support/JAMF/UEX/$2/"$3" > /dev/null 2>&1
 }
 
 fn_addPlistValue () {
-	/usr/libexec/PlistBuddy -c "add $1 $2 ${3}" /Library/Application\ Support/JAMF/UEX/"$4"/"$5"
+	/usr/libexec/PlistBuddy -c "add $1 $2 ${3}" /Library/Application\ Support/JAMF/UEX/"$4"/"$5" > /dev/null 2>&1
 
 	# log the values of the plist
 	logInUEX4DebugMode "Plist Details: $1 $2 $3"
 }
 
 fn_setPlistValue () {
-	/usr/libexec/PlistBuddy -c "set $1 ${2}" /Library/Application\ Support/JAMF/UEX/"$3"/"$4"
+	/usr/libexec/PlistBuddy -c "set $1 ${2}" /Library/Application\ Support/JAMF/UEX/"$3"/"$4" > /dev/null 2>&1
 
 	# log the values of the plist
 	logInUEX4DebugMode "Plist Details Updated: $1 $2 $3"
@@ -259,9 +259,36 @@ for package in "${packages[@]}"; do
 		logInUEX4DebugMode "Check $package for app $app"
 		if [[ "$packageContents" == *"$app"* ]]; then
 			#statements 
-			log4_JSS "$package contains $app. Classifying as an update"
+
+			loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
+			local appfound=`/usr/bin/find /Applications -maxdepth 3 -iname "$app"`
+			if [ -e /Users/"$loggedInUser"/Applications/ ] ; then
+				local userappfound=`/usr/bin/find /Users/"$loggedInUser"/Applications/ -maxdepth 3 -iname "$app"`
+			fi
+			
+	# 		altpathsfound=""
+			for altpath in "${altpaths[@]}" ; do
+				
+				if [[ "$altpath" == "~"* ]] ; then 
+					altpathshort=`echo $altpath | cut -c 2-`
+					altuserpath="/Users/${loggedInUser}${altpathshort}"
+					if [ -e "$altuserpath" ] ; then 
+						local foundappinalthpath=`/usr/bin/find "$altuserpath" -maxdepth 3 -iname "$app"`
+					fi
+				else
+					if [ -e "$altpath" ] ; then		
+						local foundappinalthpath=`/usr/bin/find "$altpath" -maxdepth 3 -iname "$app"`
+					fi
+				fi
+			done
+			if [[ "$foundappinalthpath" ]] || [[ "$userappfound" ]] || [[ "$appfound" ]]; then
+				#statements
+			log4_JSS "$package contains $app and app is already found. Classifying as an update"
 			checks+=" update"
 			break
+			fi
+			
+			
 		fi
 	done
 done
@@ -328,7 +355,7 @@ fn_generatateApps2quit () {
 				# Find the apss in /Applications/ and ~/Applications/ and open as the user
 				if [[ "$checks" != *"uninstall"* ]]; then
 					appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$app"`
-					userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$app"`
+					userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$app" 2> /dev/null`
 				fi
 				
 				
@@ -392,7 +419,7 @@ fn_check4PendingRestartsOrLogout () {
 		local plistrunDate=$(fn_getPlistValue "runDate" "restart_jss" "$i")
 
 		local timeSinceReboot=`echo "${lastReboot} - ${plistrunDate}" | bc`		
-		echo timeSinceReboot is $timeSinceReboot
+		logInUEX4DebugMode "timeSinceReboot is $timeSinceReboot"
 		
 		local logname=$(echo $packageName | sed 's/.\{4\}$//')
 		local logfilename="$logname".log
@@ -1471,15 +1498,15 @@ logInUEX4DebugMode "postponesLeft is $postponesLeft"
 fn_check4Packages ""
 
 if [[ $packageMissing = true ]] && [[ $selfservicePackage != true ]]; then
-	echo not selfservice 
+	logInUEX4DebugMode "not selfservice" 
 	trigger "$UEXcachingTrigger"
 	sleep 5
 	
 	fn_check4Packages ""
-		echo $packageMissing
+	# echo $packageMissing
 
 	if [[ $packageMissing = true ]] ; then
-		echo packageMissing is true
+		logInUEX4DebugMode "packageMissing is true"
 		badvariable=true
 	fi
 fi
@@ -1947,7 +1974,7 @@ while [ $reqlooper = 1 ] ; do
 		
 	else
 		logInUEX4DebugMode "Delay options are $delayOptions"
-		log4_JSS "Showing the install window"
+		# log4_JSS "Showing the install window"
 		if [[ "$checks" == *"critical"* ]] ; then
 			log4_JSS "Showing the install window. Critical"
 			"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
@@ -2001,7 +2028,7 @@ while [ $reqlooper = 1 ] ; do
 
 
 	PostponeClickResult=`cat $PostponeClickResultFile`
-	echo PostponeClickResult is $PostponeClickResult
+	# echo PostponeClickResult is $PostponeClickResult
 
 	if [ -z $PostponeClickResult ] ; then
 
@@ -2381,14 +2408,13 @@ fi # if there is a postponement
 # If no postpone time was set then start the install
 if [[ $PostponeClickResult == "" ]] ; then
 
+	log4_JSS "UEX actions for $actionation process starting."
+
 # Do not update invtory update if UEX is only being used for notificaitons
 # if its an innstallation polciy then update invetory at the end
 if [[ "$checks" != "notify" ]] || [[ "$checks" != "notify custom" ]] ; then
 	InventoryUpdateRequired=true
 fi
-
-
-logInUEX "Starting the installation stage."
 
 
 
@@ -2643,13 +2669,12 @@ fi # no on logged in
 	# progress bar #
 	################
 	# echo skipNotices is $skipNotices
+	pleaseWaitDaemon="/Library/LaunchDaemons/com.adidas-group.UEX-PleaseWait.plist"
 	if  [ $installDuration -ge 5 ] && [[ $skipNotices != "true" ]] ; then
 	# only run the progress indicator if the duration is 5 minutes or longer 
 		
 		# load daemon to keep pleasewait application up for notification purposes
 		logInUEX "Starting PleaseWait Application"
-
-		pleaseWaitDaemon="/Library/LaunchDaemons/com.adidas-group.UEX-PleaseWait.plist"
 
 		if [ -e "$pleaseWaitDaemon" ] ; then
 			rm "$pleaseWaitDaemon"
@@ -2736,7 +2761,7 @@ EOT
 	
 	
 	# Empty install folder
-	/bin/rm "$installJSSfolder"*
+	/bin/rm "$installJSSfolder"* 2> /dev/null
 	
 	# Install notification Place holder
 	# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
@@ -2922,7 +2947,7 @@ $action completed."
 			userAppFound=""
 			# Find the apss in /Applications/ and ~/Applications/ and open as the user
 			appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$relaunchAppName"`
-			userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$relaunchAppName"`
+			userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$relaunchAppName" 2> /dev/null`
 			
 			if [[ "$appFound" ]]; then
 				app2Open="$appFound"
