@@ -1434,8 +1434,17 @@ fi
 ##							Check for peding Restarts or Logouts						##
 ##########################################################################################
 fn_check4PendingRestartsOrLogout
+if [ "$restartQueued" = true ] && [[ "$checks" == *"restart"* ]] ; then
+	log4_JSS "Other restarts are queued"
+fi
 
+if [ "$restartQueued" = true ] && [[ "$checks" == *"logout"* ]] ; then
+	log4_JSS "There are restarts are queued"
+fi
 
+if [ "$logoutQueued" = true ] && [[ "$checks" == *"logout"* ]] ; then
+	log4_JSS "Other logouts are queued"
+fi
 
 # if there are no apps to quit/block and a lobout or restart is already queud 
 # if the user has a restart or log out pending and there is a quit/block there then change the restart/logout message 
