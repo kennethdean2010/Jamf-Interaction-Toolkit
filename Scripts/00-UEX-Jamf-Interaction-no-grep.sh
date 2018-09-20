@@ -247,6 +247,233 @@ fn_setPlistValue () {
 
 }
 
+fn_checkPKGsForApps () {
+for package in "${packages[@]}"; do
+	pathtopkg="$waitingRoomDIR"
+	pkg2install="$pathtopkg""$PKG"
+	logInUEX4DebugMode "Checking $package for apps that are interacted with."
+	local packageContents=`pkgutil --payload-files "$pkg2install"`
+
+	for app in "${apps[@]}"; do
+		#statements
+		logInUEX4DebugMode "Check $package for app $app"
+		if [[ "$packageContents" == *"$app"* ]]; then
+			#statements 
+			log4_JSS "$package contains $app. Classifying as an update"
+			checks+=" update"
+			break
+		fi
+	done
+done
+}
+
+
+logInUEX () {
+	echo $(date)	$compname	:	"$1" >> "$logfilepath"
+}
+
+logInUEX4DebugMode () {
+	if [ $debug = true ] ; then	
+		logMessage="-DEBUG- $1"
+		logInUEX $logMessage
+	fi
+}
+
+log4_JSS () {
+	echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
+}
+
+fn_execute_log4_JSS () {
+	rm "$resultlogfilepath"
+	log4_JSS "Running command: $1"
+	$($1 | tee -a $resultlogfilepath)
+	log4_JSS "RESULT: $(cat $resultlogfilepath)"
+}
+
+
+
+fn_check4Packages () {
+
+	#checking for the presence of the packages
+	if [ "$suspackage" != true ] ; then
+		pathtopkg="$waitingRoomDIR"
+		packageMissing=""
+		for PKG in "${packages[@]}"; do
+			pkg2install="$pathtopkg""$PKG"
+			# echo looking in "$pkg2install"
+			if [[ ! -e "$pkg2install" ]] ; then
+				packageMissing=true
+				log4_JSS "The package $PKG could not be found"
+			fi
+		done
+
+		if [[ $packageMissing != true ]]; then
+			packageMissing=false
+		fi
+	fi
+}
+
+fn_generatateApps2quit () {
+	apps2quit=()
+	apps2ReOpen=()
+	apps2kill=()
+	for app in "${apps[@]}" ; do
+		IFS=$'\n'
+		appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
+		# Processing application $app
+		if  [ "$appid" != "" ] ; then
+				app2Open=""
+				appFound=""
+				userAppFound=""
+				# Find the apss in /Applications/ and ~/Applications/ and open as the user
+				if [[ "$checks" != *"uninstall"* ]]; then
+					appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$app"`
+					userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$app"`
+				fi
+				
+				
+				if [[ "$appFound" ]] || [[ "$userAppFound" ]]; then
+					apps2ReOpen+=(${app})
+					apps2kill+=(${app})
+				else
+					apps2quit+=(${app})
+					apps2kill+=(${app})
+				fi
+			log4_JSS "$app is stil running. Notifiying user"
+		fi
+	done
+	unset IFS
+}
+
+fn_waitForApps2Quit () {
+	appsRunning=()
+	for app in "${apps[@]}" ; do
+		IFS=$'\n'
+		appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
+		# Processing application $app
+		if  [ "$appid" != "" ] ; then
+			appsRunning+=(${app})
+
+		fi
+	done
+
+	if [[ "${appsRunning[@]}" != *".app"* ]]; then
+		log4_JSS "User has closed all apps needed. Continuing $action"
+		echo 1 > $PostponeClickResultFile
+		apps2Relaunch=("${apps2ReOpen[@]}")
+		killall jamfHelper
+	fi
+}
+
+
+
+fn_check4PendingRestartsOrLogout () {
+	lastReboot=`date -jf "%s" "$(sysctl kern.boottime | awk -F'[= |,]' '{print $6}')" "+%s"`
+	lastRebootFriendly=`date -r$lastReboot`
+
+	resartPlists=`ls /Library/Application\ Support/JAMF/UEX/restart_jss/ | grep ".plist"`
+	set -- "$resartPlists"
+	IFS=$'\n' ; declare -a resartPlists=($*)  
+	unset IFS
+
+	logoutPlists=`ls /Library/Application\ Support/JAMF/UEX/logout_jss/ | grep ".plist"`
+	set -- "$logoutPlists" 
+	IFS=$'\n' ; declare -a logoutPlists=($*)  
+	unset IFS
+
+	# check for any plist that are scheduled to have a restart
+	for i in "${resartPlists[@]}" ; do
+		# Check all the plist in the folder for any required actions
+		# if the user has already had a fresh restart then delete the plist
+		# other wise the advise and schedule the logout.
+
+		local name=$(fn_getPlistValue "name" "restart_jss" "$i")
+		local packageName=$(fn_getPlistValue "packageName" "restart_jss" "$i")
+		local plistrunDate=$(fn_getPlistValue "runDate" "restart_jss" "$i")
+
+		local timeSinceReboot=`echo "${lastReboot} - ${plistrunDate}" | bc`		
+		echo timeSinceReboot is $timeSinceReboot
+		
+		local logname=$(echo $packageName | sed 's/.\{4\}$//')
+		local logfilename="$logname".log
+		local resulttmp="$logname"_result.log
+		local logfilepath="$logdir""$logfilename"
+		local resultlogfilepath="$logdir""$resulttmp"
+		
+		if [[ $timeSinceReboot -gt 0 ]] || [ -z "$plistrunDate" ]  ; then
+			# the computer has rebooted since $runDateFriendly
+			#delete the plist
+			logInUEX "Deleting the restart plsit $i because the computer has rebooted since $runDateFriendly"
+			sudo rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
+		else 
+			# the computer has NOT rebooted since $runDateFriendly
+			log4_JSS "Other restarts are queued"
+			restartQueued=true
+		fi
+	done
+
+
+	# if there are no scheduled restart then proceed with logout checks and prompts
+	if [[ "$restartQueued" != "true" ]] ; then
+		
+		for i in "${logoutPlists[@]}" ; do
+		# Check all the plist in the folder for any required actions
+		# If the plist has already been touched 
+		# OR if the user has already had a fresh login then delete the plist
+		# other wise the advise and schedule the logout.
+
+			local name=$(fn_getPlistValue "name" "logout_jss" "$i")
+			local packageName=$(fn_getPlistValue "packageName" "logout_jss" "$i")
+			local plistloggedInUser=$(fn_getPlistValue "loggedInUser" "logout_jss" "$i")
+			local checked=$(fn_getPlistValue "checked" "logout_jss" "$i")
+			local plistrunDate=$(fn_getPlistValue "runDate" "logout_jss" "$i")
+
+			local plistrunDateFriendly=`date -r $plistrunDate`
+			
+			local timeSinceLogin=$((lastLogin-plistrunDate))
+			local timeSinceReboot=`echo "${lastReboot} - ${plistrunDate}" | bc`		
+			
+			#######################
+			# Logging files setup #
+			#######################
+			local logname=$(echo $packageName | sed 's/.\{4\}$//')
+			local logfilename="$logname".log
+			local resulttmp="$logname"_result.log
+			local logfilepath="$logdir""$logfilename"
+			local resultlogfilepath="$logdir""$resulttmp"
+			
+			
+			if [[ $timeSinceReboot -gt 0 ]] || [ -z "$plistrunDate" ]  ; then
+				# the computer has rebooted since $runDateFriendly
+				#delete the plist
+				rm "/Library/Application Support/JAMF/UEX/logout_jss/$i"
+				logInUEX "There are no restart interactions required"
+				logInUEX "Deleted logout plist because the user has restarted already"
+				
+			elif [[ $checked == "true" ]] ; then
+			# if the user has a fresh login since then delete the plist
+			# if the plist has been touched once then the user has been logged out once
+			# then delete the plist
+				rm "/Library/Application Support/JAMF/UEX/logout_jss/$i"
+				logInUEX "Deleted logout plist because the user has logged out already"
+			elif [[ "$plistloggedInUser" != "$loggedInUser" ]] ; then
+			# if the user in the plist is not the user as the one currently logged in do not force a logout
+			# this will skip the processing of that plist
+				logInUEX "User in the logout plist is not the same user as the one currently logged in do not force a logout"
+			else 
+			# the user has NOT logged out since $plistrunDateFriendly				
+				# set the logout to true so that the user is prompted
+				log4_JSS "Other logouts are queued"
+				logoutQueued=true
+			fi
+		done
+	fi
+
+}
+
+
+
+
 ##########################################################################################
 ##									SSD Calculations									##
 ##########################################################################################
@@ -557,33 +784,6 @@ declare -a packages=($*)
 unset IFS
 
 
-
-###
-# action and heading changes
-###
-if [[ "$checks" == *"install"* ]] && [[ "$checks" != *"uninstall"* ]] ; then
-	action="install"
-	actioncap="Install"
-	actioning="installing"
-	actionation="Installation"
-elif [[ "$checks" == *"update"* ]] ; then
-	action="update"
-	actioncap="Update"
-	actioning="updating"
-	actionation="Updates"
-elif [[ "$checks" == *"uninstall"* ]] ; then
-	action="uninstall"
-	actioncap="Uninstall"
-	actioning="uninstalling"
-	actionation="Removal"
-else
-	action="install"
-	actioncap="Install"
-	actioning="installing"
-	actionation="Installation"
-fi
-
-
 ##########################################################################################
 ##						DO NOT MAKE ANY CHANGES BELOW THIS LINE!						##
 ##########################################################################################
@@ -754,207 +954,6 @@ chmod -R 755 "$logdir"
 logfilepath="$logdir""$logfilename"
 resultlogfilepath="$logdir""$resulttmp"
 
-
-logInUEX () {
-	echo $(date)	$compname	:	"$1" >> "$logfilepath"
-}
-
-logInUEX4DebugMode () {
-	if [ $debug = true ] ; then	
-		logMessage="-DEBUG- $1"
-		logInUEX $logMessage
-	fi
-}
-
-log4_JSS () {
-	echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
-}
-
-fn_execute_log4_JSS () {
-	rm "$resultlogfilepath"
-	log4_JSS "Running command: $1"
-	$($1 | tee -a $resultlogfilepath)
-	log4_JSS "RESULT: $(cat $resultlogfilepath)"
-}
-
-check4Packages () {
-
-	#checking for the presence of the packages
-	if [ "$suspackage" != true ] ; then
-		pathtopkg="$waitingRoomDIR"
-		packageMissing=""
-		for PKG in "${packages[@]}"; do
-			pkg2install="$pathtopkg""$PKG"
-			# echo looking in "$pkg2install"
-			if [[ ! -e "$pkg2install" ]] ; then
-				packageMissing=true
-				log4_JSS "The package $PKG could not be found"
-			fi
-		done
-
-		if [[ $packageMissing != true ]]; then
-			packageMissing=false
-		fi
-	fi
-}
-
-fn_generatateApps2quit () {
-	apps2quit=()
-	apps2ReOpen=()
-	apps2kill=()
-	for app in "${apps[@]}" ; do
-		IFS=$'\n'
-		appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
-		# Processing application $app
-		if  [ "$appid" != "" ] ; then
-				app2Open=""
-				appFound=""
-				userAppFound=""
-				# Find the apss in /Applications/ and ~/Applications/ and open as the user
-				if [[ "$checks" != *"uninstall"* ]]; then
-					appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$app"`
-					userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$app"`
-				fi
-				
-				
-				if [[ "$appFound" ]] || [[ "$userAppFound" ]]; then
-					apps2ReOpen+=(${app})
-					apps2kill+=(${app})
-				else
-					apps2quit+=(${app})
-					apps2kill+=(${app})
-				fi
-			log4_JSS "$app is stil running. Notifiying user"
-		fi
-	done
-	unset IFS
-}
-
-fn_waitForApps2Quit () {
-	appsRunning=()
-	for app in "${apps[@]}" ; do
-		IFS=$'\n'
-		appid=`ps aux | grep ${app}/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
-		# Processing application $app
-		if  [ "$appid" != "" ] ; then
-			appsRunning+=(${app})
-
-		fi
-	done
-
-	if [[ "${appsRunning[@]}" != *".app"* ]]; then
-		log4_JSS "User has closed all apps needed. Continuing $action"
-		echo 1 > $PostponeClickResultFile
-		apps2Relaunch=("${apps2ReOpen[@]}")
-		killall jamfHelper
-	fi
-}
-
-
-
-fn_check4PendingRestartsOrLogout () {
-	lastReboot=`date -jf "%s" "$(sysctl kern.boottime | awk -F'[= |,]' '{print $6}')" "+%s"`
-	lastRebootFriendly=`date -r$lastReboot`
-
-	resartPlists=`ls /Library/Application\ Support/JAMF/UEX/restart_jss/ | grep ".plist"`
-	set -- "$resartPlists"
-	IFS=$'\n' ; declare -a resartPlists=($*)  
-	unset IFS
-
-	logoutPlists=`ls /Library/Application\ Support/JAMF/UEX/logout_jss/ | grep ".plist"`
-	set -- "$logoutPlists" 
-	IFS=$'\n' ; declare -a logoutPlists=($*)  
-	unset IFS
-
-	# check for any plist that are scheduled to have a restart
-	for i in "${resartPlists[@]}" ; do
-		# Check all the plist in the folder for any required actions
-		# if the user has already had a fresh restart then delete the plist
-		# other wise the advise and schedule the logout.
-
-		local name=$(fn_getPlistValue "name" "restart_jss" "$i")
-		local packageName=$(fn_getPlistValue "packageName" "restart_jss" "$i")
-		local plistrunDate=$(fn_getPlistValue "runDate" "restart_jss" "$i")
-
-		local timeSinceReboot=`echo "${lastReboot} - ${plistrunDate}" | bc`		
-		echo timeSinceReboot is $timeSinceReboot
-		
-		local logname=$(echo $packageName | sed 's/.\{4\}$//')
-		local logfilename="$logname".log
-		local resulttmp="$logname"_result.log
-		local logfilepath="$logdir""$logfilename"
-		local resultlogfilepath="$logdir""$resulttmp"
-		
-		if [[ $timeSinceReboot -gt 0 ]] || [ -z "$plistrunDate" ]  ; then
-			# the computer has rebooted since $runDateFriendly
-			#delete the plist
-			logInUEX "Deleting the restart plsit $i because the computer has rebooted since $runDateFriendly"
-			sudo rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
-		else 
-			# the computer has NOT rebooted since $runDateFriendly
-			log4_JSS "Other restarts are queued"
-			restartQueued=true
-		fi
-	done
-
-
-	# if there are no scheduled restart then proceed with logout checks and prompts
-	if [[ "$restartQueued" != "true" ]] ; then
-		
-		for i in "${logoutPlists[@]}" ; do
-		# Check all the plist in the folder for any required actions
-		# If the plist has already been touched 
-		# OR if the user has already had a fresh login then delete the plist
-		# other wise the advise and schedule the logout.
-
-			local name=$(fn_getPlistValue "name" "logout_jss" "$i")
-			local packageName=$(fn_getPlistValue "packageName" "logout_jss" "$i")
-			local plistloggedInUser=$(fn_getPlistValue "loggedInUser" "logout_jss" "$i")
-			local checked=$(fn_getPlistValue "checked" "logout_jss" "$i")
-			local plistrunDate=$(fn_getPlistValue "runDate" "logout_jss" "$i")
-
-			local plistrunDateFriendly=`date -r $plistrunDate`
-			
-			local timeSinceLogin=$((lastLogin-plistrunDate))
-			local timeSinceReboot=`echo "${lastReboot} - ${plistrunDate}" | bc`		
-			
-			#######################
-			# Logging files setup #
-			#######################
-			local logname=$(echo $packageName | sed 's/.\{4\}$//')
-			local logfilename="$logname".log
-			local resulttmp="$logname"_result.log
-			local logfilepath="$logdir""$logfilename"
-			local resultlogfilepath="$logdir""$resulttmp"
-			
-			
-			if [[ $timeSinceReboot -gt 0 ]] || [ -z "$plistrunDate" ]  ; then
-				# the computer has rebooted since $runDateFriendly
-				#delete the plist
-				rm "/Library/Application Support/JAMF/UEX/logout_jss/$i"
-				logInUEX "There are no restart interactions required"
-				logInUEX "Deleted logout plist because the user has restarted already"
-				
-			elif [[ $checked == "true" ]] ; then
-			# if the user has a fresh login since then delete the plist
-			# if the plist has been touched once then the user has been logged out once
-			# then delete the plist
-				rm "/Library/Application Support/JAMF/UEX/logout_jss/$i"
-				logInUEX "Deleted logout plist because the user has logged out already"
-			elif [[ "$plistloggedInUser" != "$loggedInUser" ]] ; then
-			# if the user in the plist is not the user as the one currently logged in do not force a logout
-			# this will skip the processing of that plist
-				logInUEX "User in the logout plist is not the same user as the one currently logged in do not force a logout"
-			else 
-			# the user has NOT logged out since $plistrunDateFriendly				
-				# set the logout to true so that the user is prompted
-				log4_JSS "Other logouts are queued"
-				logoutQueued=true
-			fi
-		done
-	fi
-
-}
 
 linkaddress="/Library/Logs/"
 ln -s "$logdir" "$linkaddress" > /dev/null 2>&1
@@ -1197,29 +1196,6 @@ fi
 ##########################################################################################
 fi
 ##########################################################################################
-
-
-#########################################################################################
-##					 		PACKAGE CHECK FOR DEPLOYED SOFWARE							##
-##########################################################################################
-
-check4Packages ""
-
-if [[ $packageMissing = true ]] && [[ $selfservicePackage != true ]]; then
-	echo not selfservice 
-	trigger "$UEXcachingTrigger"
-	sleep 5
-	
-	check4Packages ""
-		echo $packageMissing
-
-	if [[ $packageMissing = true ]] ; then
-		echo packageMissing is true
-		badvariable=true
-	fi
-fi
-
-
 
 
 ##########################################################################################
@@ -1487,6 +1463,60 @@ logInUEX4DebugMode "delayNumber is $delayNumber"
 postponesLeft=$((maxdefer-delayNumber))
 
 logInUEX4DebugMode "postponesLeft is $postponesLeft"
+
+#########################################################################################
+##					 		PACKAGE CHECK FOR DEPLOYED SOFWARE							##
+##########################################################################################
+
+fn_check4Packages ""
+
+if [[ $packageMissing = true ]] && [[ $selfservicePackage != true ]]; then
+	echo not selfservice 
+	trigger "$UEXcachingTrigger"
+	sleep 5
+	
+	fn_check4Packages ""
+		echo $packageMissing
+
+	if [[ $packageMissing = true ]] ; then
+		echo packageMissing is true
+		badvariable=true
+	fi
+fi
+
+##########################################################################################
+##								Automatic Detction of updatesfiltered 						##
+##########################################################################################
+
+if [ "$suspackage" != true ] && [[ "$checks" != *"uninstall"* ]]; then
+	fn_checkPKGsForApps
+fi
+
+
+##########################################################################################
+##								Settiing heading and verbs								##
+##########################################################################################
+if [[ "$checks" == *"install"* ]] && [[ "$checks" != *"uninstall"* ]] ; then
+	action="install"
+	actioncap="Install"
+	actioning="installing"
+	actionation="Installation"
+elif [[ "$checks" == *"update"* ]] ; then
+	action="update"
+	actioncap="Update"
+	actioning="updating"
+	actionation="Updates"
+elif [[ "$checks" == *"uninstall"* ]] ; then
+	action="uninstall"
+	actioncap="Uninstall"
+	actioning="uninstalling"
+	actionation="Removal"
+else
+	action="install"
+	actioncap="Install"
+	actioning="installing"
+	actionation="Installation"
+fi
 
 
 ##########################################################################################
@@ -2297,7 +2327,7 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 	if [ $selfservicePackage = true ] ; then
 		log4_JSS "SELF SERVICE PACKAGE: Skipping Delay Service"
 
-		check4Packages ""
+		fn_check4Packages ""
 		if [[ $packageMissing = true ]]; then
 			triggerNgo $UEXcachingTrigger
 		fi
@@ -2365,7 +2395,7 @@ logInUEX "Starting the installation stage."
 	###########################################
 	# Downoding notice for selfservicePackage #
 	###########################################
-	check4Packages ""
+	fn_check4Packages ""
 
 	if [[ $packageMissing = true ]] && [[ $selfservicePackage = true ]]; then
 		status="$heading,
@@ -2374,7 +2404,7 @@ Downloading packages..."
 
 		trigger $UEXcachingTrigger
 
-		check4Packages ""
+		fn_check4Packages ""
 
 		if [[ $packageMissing = true ]]; then
 			badvariable=true
