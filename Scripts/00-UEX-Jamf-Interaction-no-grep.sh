@@ -2475,7 +2475,21 @@ Downloading packages..."
 	##########################
 	# Install Started Notice #
 	##########################
-	if [ $selfservicePackage = true ] || [[ $skipNotices != "true" ]]  ; then	
+
+	if [[ $preApprovedInstall = true ]] && [ "$loggedInUser" ] && [[ $logoutQueued = true ]] && [[ $restartQueued != true ]] ;then
+		status="$heading,
+another $action is starting
+You will be logged out after all software changes are complete."
+		"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
+	elif [[ $preApprovedInstall = true ]] && [ "$loggedInUser" ] && [[ $restartQueued = true ]]; then
+		status="$heading,
+another $action is starting
+The restart will happpen after all software changes are complete."
+		"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
+	fi
+
+
+	if [ $selfservicePackage = true ] && [[ $preApprovedInstall != true ]] || [[ $skipNotices != "true" ]] && [[ $preApprovedInstall != true ]]   ; then	
 		status="$heading,
 starting $action..."
 		if [ "$loggedInUser" ] ; then 
@@ -2704,7 +2718,7 @@ fi # no on logged in
 	################
 	# echo skipNotices is $skipNotices
 	pleaseWaitDaemon="/Library/LaunchDaemons/com.adidas-group.UEX-PleaseWait.plist"
-	if  [ $installDuration -ge 5 ] && [[ $skipNotices != "true" ]] ; then
+	if  [ $installDuration -ge 5 ] && [[ $skipNotices != "true" ]] && [[ $preApprovedInstall != true ]] ; then
 	# only run the progress indicator if the duration is 5 minutes or longer 
 		
 		# load daemon to keep pleasewait application up for notification purposes
