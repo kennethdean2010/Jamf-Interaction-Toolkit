@@ -12,7 +12,7 @@ jss_pass="jamf1234"
 UEXCategoryName="User Experience"
 
 packages=(
-"UEXresourcesInstaller-201808261056.pkg"
+"UEXresourcesInstaller-201808310633.pkg"
 )
 
 ##########################################################################################
