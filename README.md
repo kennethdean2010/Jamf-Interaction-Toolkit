@@ -7,12 +7,6 @@ I'll have a more comprehensive readme later
 Please check out the [Wiki Here ](https://github.com/cubandave/Jamf-Interaction-Toolkit/wiki)
 
 You can uses this verison right off the bat for testing.
-
-## Video from PDX MacAdmins Meetup:
-[Video hosted on YouTube](https://youtu.be/WKS2O_EhAJ8)
-## PDF of Presentation: 
-[PDF hosted on gitHub](https://github.com/cubandave/Jamf-Interaction-Toolkit/blob/master/Documentation/MacAdmins%20Meetup/PDX_MacAdmins_meetup_Apr_2018.pdf)
-
 # Customized Branding
 
 Update the "title" and any desired icon paths in the following scripts
