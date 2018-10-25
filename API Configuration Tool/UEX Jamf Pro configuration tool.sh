@@ -4,7 +4,7 @@
 # Variables
 ###################
 
-jss_url="https://172.16.200.128:8443"
+jss_url="https://172.16.134.128:8443"
 jss_user="jssadmin"
 jss_pass="jamf1234"
 

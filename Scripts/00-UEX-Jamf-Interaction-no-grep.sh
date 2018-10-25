@@ -99,11 +99,11 @@ customMessage=${11}
 
 
 # fordebugging
-# NameConsolidated="Apple;UEX DEMO;6.1.5"
-# checks="quit debug"
-# apps="Microsoft PowerPoint.app"
+# NameConsolidated="Apple;Adobe Creative Apps;1.0"
+# checks="block power update debug"
+# apps="Adobe Illustrator CC 2017.app;Adobe Photoshop CC 2017.app;Adobe IndesignCC  2017.app;Adobe BridgeCC  2017.app;Adobe Media Encoder CC 2017.app;Adobe Acrobat.app;ExtendScript Toolkit.app;Adobe Extension Manager CC.app"
 # installDuration=60
-# maxdefer=1
+# maxdefer=4
 # packages=
 # triggers=None
 # customMessage=""
@@ -634,9 +634,15 @@ fi
 #####
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
 splashBuddyRunning=`ps aux | grep SplashBuddy.app/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
+DEPNotifyRunning=`ps aux | grep DEPNotify.app/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
+
 AppleSetupDoneFile="/var/db/.AppleSetupDone"
 
 if [ $splashBuddyRunning ] ; then
+	silentPackage=true
+fi
+
+if [ $DEPNotifyRunning ] ; then
 	silentPackage=true
 fi
 
@@ -1919,7 +1925,7 @@ if [[ "$loggedInUser" != root ]] ; then
 ##########################################################################################
 
 presentationApps=(
-# "Microsoft PowerPoint.app"
+"Microsoft PowerPoint.app"
 "Keynote.app"
 "VidyoDesktop.app"
 "Vidyo Desktop.app"
