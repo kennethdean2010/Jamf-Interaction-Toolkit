@@ -25,7 +25,7 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # logout if required.
 # 
 # Name: logout-notification.sh
-# Version Number: 3.8
+# Version Number: 4.0.1
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas.com)
@@ -251,7 +251,7 @@ unset IFS
 # no login  RUN NOW
 # (skip to install stage)
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
-
+osMajor=$( /usr/bin/sw_vers -productVersion | awk -F. {'print $2'} )
 ##########################################################################################
 ##					Notification if there are scheduled logouts							##
 ##########################################################################################
@@ -266,11 +266,14 @@ if [ $loggedInUser ] ; then
         # dialog with 10 minute countdown
         logoutclickbutton=`"$jhPath" -windowType hud -lockHUD -windowPostion lr -title "$title" -description "$notice" -icon "$icon" -timeout 3600 -countdown -alignCountdown center -button1 "Logout Now"`
      
-        # Force logout by killing the login window for that user
-        # messylogout`ps -Ajc | grep loginwindow | grep "$loggedInUser" | grep -v grep | awk '{print $2}' | sudo xargs kill`
-        # Nicer logout (http://apple.stackexchange.com/questions/103571/using-the-terminal-command-to-shutdown-restart-and-sleep-my-mac)
-		osascript -e 'tell application "loginwindow" to «event aevtrlgo»'
-        
+       
+        if [[ "$osMajor" -ge 14 ]]; then
+	        # Force logout by killing the login window for that user
+	        messylogout`ps -Ajc | grep loginwindow | grep "$loggedInUser" | grep -v grep | awk '{print $2}' | sudo xargs kill`
+		else
+			 # Nicer logout (http://apple.stackexchange.com/questions/103571/using-the-terminal-command-to-shutdown-restart-and-sleep-my-mac)
+			osascript -e 'tell application "loginwindow" to «event aevtrlgo»'
+		fi # OS is ge 14
     fi
 else
     rm /Library/Application\ Support/JAMF/UEX/logout_jss/*

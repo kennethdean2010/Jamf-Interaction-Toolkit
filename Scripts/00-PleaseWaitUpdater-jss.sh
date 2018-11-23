@@ -9,7 +9,7 @@
 # restarts and logouts
 # 
 # Name: PleaseWaitUpdater.sh
-# Version Number: 3.8
+# Version Number: 4.0.1
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas.com)

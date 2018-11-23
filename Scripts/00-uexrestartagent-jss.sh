@@ -26,7 +26,7 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # restart if required.
 # 
 # Name: restart-notification.sh
-# Version Number: 3.8
+# Version Number: 4.0.1
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas.com)
@@ -168,6 +168,8 @@ loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v ro
 ##					Notification if there are scheduled restarts						##
 ##########################################################################################
 
+osMajor=$( /usr/bin/sw_vers -productVersion | awk -F. {'print $2'} )
+
 sleep 15
 otherJamfprocess=`ps aux | grep jamf | grep -v grep | grep -v launchDaemon | grep -v jamfAgent | grep -v uexrestartagent`
 otherJamfprocess+=`ps aux | grep [Ss]plashBuddy`
@@ -193,14 +195,15 @@ Your computer will be automatically restarted at the end of the countdown.'
 		restartclickbutton=`"$jhPath" -windowType hud -lockHUD -windowPostion lr -title "$title" -description "$notice" -icon "$icon" -timeout 3600 -countdown -alignCountdown center -button1 "Restart Now"`
 	
 			
-			
-			# Nicer restart (http://apple.stackexchange.com/questions/103571/using-the-terminal-command-to-shutdown-restart-and-sleep-my-mac)
-			osascript -e 'tell app "System Events" to restart'
+			if [[ "$osMajor" -ge 14 ]]; then
+				#statements
+				sudo shutdown -r now
+			else
+				# Nicer restart (http://apple.stackexchange.com/questions/103571/using-the-terminal-command-to-shutdown-restart-and-sleep-my-mac)
+				osascript -e 'tell app "System Events" to restart'
+			fi # OS is ge 14
 
-			# force restart
-			sleep 60
-			sudo shutdown -r now
-		else
+		else # no one is logged in
 			# force restart
 			# while no on eis logged in you can do a force shutdown
 

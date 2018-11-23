@@ -23,8 +23,8 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # 
 # User experience Post installation script to be bundled with PKG.
 # 
-# Version Number: 3.8
-	uexvers=3.8
+# Version Number: 4.0.1
+	uexvers=4.0.1
 # 
 # Created Jan 18, 2016 by David Ramirez
 #
@@ -2993,6 +2993,21 @@ $action completed."
 
 	fi
 
+	
+	#####################
+	# 		Block	 	#
+	#####################
+	if [[ "$checks" == *"block"* ]] ; then
+		# delete the plist with properties to stop blocking
+		logInUEX "Deleting the blocking plist"
+		/bin/rm "/Library/Application Support/JAMF/UEX/block_jss/${packageName}.plist" > /dev/null 2>&1
+		
+		#kill all cocoaDialog windows 
+		logInUEX "Killing cocoadialog window"
+		kill $(ps -e | grep cocoaDialog | grep -v grep | awk '{print $1}') > /dev/null 2>&1
+	fi
+
+
 	#####################
 	# reopen apps      #
 	#####################
@@ -3016,20 +3031,6 @@ $action completed."
 				sudo -u "$loggedInUser" open -g "$app2Open"
 			fi
 		done
-	fi
-	
-	
-	#####################
-	# 		Block	 	#
-	#####################
-	if [[ "$checks" == *"block"* ]] ; then
-		# delete the plist with properties to stop blocking
-		logInUEX "Deleting the blocking plist"
-		/bin/rm "/Library/Application Support/JAMF/UEX/block_jss/${packageName}.plist" > /dev/null 2>&1
-		
-		#kill all cocoaDialog windows 
-		logInUEX "Killing cocoadialog window"
-		kill $(ps -e | grep cocoaDialog | grep -v grep | awk '{print $1}') > /dev/null 2>&1
 	fi
 
 	#####################

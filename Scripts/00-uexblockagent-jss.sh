@@ -25,7 +25,7 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # It run through the list of apps checks to see if they are running and then kills them.
 # 
 # Name: Block-notification.sh
-# Version Number: 3.8
+# Version Number: 4.0.1
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas.com)
