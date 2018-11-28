@@ -22,7 +22,7 @@ If you want to add the icons in the jamfHelper & CocoaDialog windows
 * Then to create your UEXresource package run the "build_pkg.sh"
 
 If you want to update the title and icon in the PleaseWait.app open the project in xcode from the PleaseWaitMini folder
-* Go the MainMenu.XIP and change the title in the incpeter attributes
+* Go the MainMenu.XIP and change the title in the inspector attributes
 * to update icon simply replace the PleaseWait.icns
 * Build your project with your teamID/Cert 
 * Replace the PleaseWait.app that's in the payload
