@@ -548,7 +548,7 @@ declare -a NameConsolidated=($*)
 
 set -- "$triggers" 
 declare -a triggers=($*)
-UEXpolicyTrigger=${triggers[0]}
+UEXpolicyTrigger=$(echo "${triggers[0]}" | tr '[:upper:]' '[:lower:]')
 UEXcachingTrigger="$UEXpolicyTrigger""_cache"
 unset triggers[0]
 
@@ -595,11 +595,9 @@ fi
 ##########################################################################################
 #								SELF SERVICE APP DETECTION								 #
 ##########################################################################################
-sspolicyRunning=`ps aux | grep "00-UEX-Install-via-Self-Service" | grep -v grep | grep -v PATH | awk '{print $NF}'`
-ssUpdatePolicyRunning=`ps aux | grep "00-UEX-Update-via-Self-Service" | grep -v grep | grep -v PATH | awk '{print $NF}'`
-ssUninstallPolicyRunning=`ps aux | grep "00-UEX-Uninstall-via-Self-Service" | grep -v grep | grep -v PATH | awk '{print $NF}'`
-# add check for deploy vai trigger = updates  if this is true then self service is false. So that deferment options are available per update
-
+sspolicyRunning=`ps aux | grep "00-UEX-Install-via-Self-Service" | grep -v grep | grep -v PATH | awk '{print $NF}' | tr '[:upper:]' '[:lower:]'`
+ssUpdatePolicyRunning=`ps aux | grep "00-UEX-Update-via-Self-Service" | grep -v grep | grep -v PATH | awk '{print $NF}' | tr '[:upper:]' '[:lower:]'`
+ssUninstallPolicyRunning=`ps aux | grep "00-UEX-Uninstall-via-Self-Service" | grep -v grep | grep -v PATH | awk '{print $NF}' | tr '[:upper:]' '[:lower:]'`
 
 if [ -e "$SSplaceholderDIR""$packageName" ] ; then 
 	selfservicePackage=true
@@ -621,9 +619,9 @@ if [[ "$ssUninstallPolicyRunning" == *"$UEXpolicyTrigger"* ]] ; then
 	selfservicePackage=true
 fi 
 
-deploymentpolicyRunning=`ps aux | grep "00-UEX-Deploy-via-Trigger" | grep -v grep | grep -v PATH | awk '{print $NF}'`
+deploymentpolicyRunning=`ps aux | grep "00-UEX-Deploy-via-Trigger" | grep -v grep | grep -v PATH | awk '{print $NF}' | tr '[:upper:]' '[:lower:]'`
 
-silentpolicyRunning=`ps aux | grep "00-UEX-Install-Silent-via-trigger" | grep -v grep | grep -v PATH | awk '{print $NF}'`
+silentpolicyRunning=`ps aux | grep "00-UEX-Install-Silent-via-trigger" | grep -v grep | grep -v PATH | awk '{print $NF}' | tr '[:upper:]' '[:lower:]'`
 
 if [[ "$silentpolicyRunning" == *"$UEXpolicyTrigger"* ]] ; then
 	silentPackage=true
@@ -658,9 +656,6 @@ if [[ "$checks" == *"ssavail"* ]] ; then
 	ssavail=true
 fi 
 
-if [[ "$sspolicyRunning" == *"$UEXpolicyTrigger"* ]] ; then
-	deploymentPackage=true
-fi
 
 if [[ "$checks" == *"ssavail"* ]] ; then
 	ssavail=true
