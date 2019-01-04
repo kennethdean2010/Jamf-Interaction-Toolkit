@@ -4,7 +4,7 @@
 # Variables
 ###################
 
-jss_url="https://172.16.134.128:8443"
+jss_url="https://cubandave.local:8443"
 jss_user="jssadmin"
 jss_pass="jamf1234"
 
@@ -12,7 +12,7 @@ jss_pass="jamf1234"
 UEXCategoryName="User Experience"
 
 packages=(
-"UEXresourcesInstaller-201808310633.pkg"
+"UEXresourcesInstaller-201901021850.pkg"
 )
 
 ##########################################################################################
@@ -20,30 +20,30 @@ packages=(
 ##########################################################################################
 
 scripts=(
-"00-PleaseWaitUpdater-jss.sh"
-"00-UEX-Deploy-via-Trigger.sh"
-"00-UEX-Install-Silent-via-trigger.sh"
-"00-UEX-Install-via-Self-Service.sh"
-"00-UEX-Jamf-Interaction-no-grep.sh"
-"00-UEX-Uninstall-via-Self-Service.sh"
-"00-UEX-Update-via-Self-Service.sh"
-"00-uexblockagent-jss.sh"
-"00-uexdeferralservice-jss.sh"
-"00-uexlogoutagent-jss.sh"
-"00-uexrestartagent-jss.sh"
-"00-uex_inventory_update_agent-jss.sh"
+"00-PleaseWaitUpdater-jss"
+"00-UEX-Deploy-via-Trigger"
+"00-UEX-Install-Silent-via-trigger"
+"00-UEX-Install-via-Self-Service"
+"00-UEX-Jamf-Interaction-no-grep"
+"00-UEX-Uninstall-via-Self-Service"
+"00-UEX-Update-via-Self-Service"
+"00-uexblockagent-jss"
+"00-uexdeferralservice-jss"
+"00-uexlogoutagent-jss"
+"00-uexrestartagent-jss"
+"00-uex_inventory_update_agent-jss"
 )
 
 triggerscripts=(
-	"00-UEX-Deploy-via-Trigger.sh"
-	"00-UEX-Install-Silent-via-trigger.sh"
-	"00-UEX-Install-via-Self-Service.sh"
-	"00-UEX-Uninstall-via-Self-Service.sh"
-	"00-UEX-Update-via-Self-Service.sh"
+	"00-UEX-Deploy-via-Trigger"
+	"00-UEX-Install-Silent-via-trigger"
+	"00-UEX-Install-via-Self-Service"
+	"00-UEX-Uninstall-via-Self-Service"
+	"00-UEX-Update-via-Self-Service"
 )
 
 UEXInteractionScripts=(
-"00-UEX-Jamf-Interaction-no-grep.sh"
+"00-UEX-Jamf-Interaction-no-grep"
 )
 
 
@@ -201,7 +201,6 @@ agentPolicyXML="<policy>
     <size>1</size>
     <script>
       <id>$scriptID</id>
-      <name>$policyScript</name>
       <priority>After</priority>
     </script>
   </scripts>
@@ -214,7 +213,7 @@ FNput_postXML "policies" "$agentPolicyName" "$agentPolicyXML"
 fn_createTriggerPolicy () {
 	triggerPolicyName="$1"
 	policyTrigger2Run="$2"
-	FNgetID "scripts" "00-UEX-Deploy-via-Trigger.sh"
+	FNgetID "scripts" "00-UEX-Deploy-via-Trigger"
 	triggerScripID="$retreivedID"
 	triggerPolicyScopeXML="$3"
 
@@ -407,12 +406,12 @@ fn_setScriptParameters () {
 
 
 # create agent policies
-	fn_createAgentPolicy "00-uexblockagent-jss.sh" "uexblockagent"
-	fn_createAgentPolicy "00-uexlogoutagent-jss.sh" "uexlogoutagent"
-	fn_createAgentPolicy "00-uexrestartagent-jss.sh" "uexrestartagent"
-	fn_createAgentPolicy "00-uex_inventory_update_agent-jss.sh" "uex_inventory_update_agent"
-	fn_createAgentPolicy "00-uexdeferralservice-jss.sh" "uexdeferralservice"
-	fn_createAgentPolicy "00-PleaseWaitUpdater-jss.sh" "PleaseWaitUpdater"
+	fn_createAgentPolicy "00-uexblockagent-jss" "uexblockagent"
+	fn_createAgentPolicy "00-uexlogoutagent-jss" "uexlogoutagent"
+	fn_createAgentPolicy "00-uexrestartagent-jss" "uexrestartagent"
+	fn_createAgentPolicy "00-uex_inventory_update_agent-jss" "uex_inventory_update_agent"
+	fn_createAgentPolicy "00-uexdeferralservice-jss" "uexdeferralservice"
+	fn_createAgentPolicy "00-PleaseWaitUpdater-jss" "PleaseWaitUpdater"
 
 
 # Check for EA
