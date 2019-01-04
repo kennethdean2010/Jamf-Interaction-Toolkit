@@ -82,7 +82,11 @@ fn_getPlistValue () {
 }
 
 logInUEX () {
-	sudo echo $(date)	$compname	:	"$1" >> "$logfilepath"
+	echo $(date)	$compname	:	"$1" >> "$logfilepath"
+}
+
+fn_getPassword () {
+	"$CocoaDialog" standard-inputbox --no-show --title "$title" --informative-text "Please enter in your password" -no-newline --icon-file "$icon" | tail +2
 }
 
 logInUEX4DebugMode () {
@@ -93,7 +97,7 @@ logInUEX4DebugMode () {
 }
 
 log4_JSS () {
-	sudo echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
+	echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
 }
 
 ##########################################################################################
@@ -143,7 +147,7 @@ for i in "${plists[@]}" ; do
 		# the computer has rebooted since $runDateFriendly
 		#delete the plist
 		logInUEX "Deleting the restart plsit $i because the computer has rebooted since $runDateFriendly"
-		sudo rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
+		rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
 	else 
 		# the computer has NOT rebooted since $runDateFriendly
 		lastline=`awk 'END{print}' "$logfilepath"`
@@ -184,8 +188,88 @@ fi
 # only run the restart command once all other jamf policies have completed
 if [[ $otherJamfprocess == "" ]] ; then 
 	if [[ "$restart" == "true" ]] ; then
+
+
+##########################################################################################
+##						FileVautl Authenticated reboot									##
+##########################################################################################
+
+		fvUsers=($(fdesetup list | awk -F',' '{ print $1}'))
+		fvAutrestartSupported=`fdesetup supportsauthrestart`
+
+		for user2Check in "${fvUsers[@]}"; do
+			# Check if the logged in user can unlock the disk by lopping through the user that are abel to unlock it
+
+			if [[ "$loggedInUser" == "$user2Check" ]]; then
+				# set the unlock disk variable so that the user can be proompted if they want to do an authenticated restart
+				userCanUnLockDisk=true
+				break
+			fi
+		done
+
+		# only if some one is logged in and can unlock the disk and it's supported
+		if [[ $loggedInUser ]] && [[ "$userCanUnLockDisk" = true ]] && [[ "$fvAutrestartSupported" = true ]] ; then
+	
+			fvUnlockHeading="FileVault Authorized Restart"
+			fvUnlockNotice='In order for the changes to complete you must restart your computer. Please save your work. 
+	
+Would you like enter your password to have the computer unlock the disk automatically? 
+Note: Automatic does not always occur.'
+	
+		#notice
+		fvUnlockButton=`"$jhPath" -windowType hud -lockHUD -heading "$fvUnlockHeading" -windowPostion lr -title "$title" -description "$fvUnlockNotice" -icon "$icon" -timeout 300 -countdown -alignCountdown center -button1 "No" -button2 "Yes" `
 		
-		if [ $loggedInUser ] ; then
+			if [[ "$fvUnlockButton" = 2 ]]; then
+				log4_JSS "User chose to restart with an authenticatedRestart"
+				authenticatedRestart=true
+				passwordLooper=0
+				while [[ "$passwordLooper" = 0 ]]; do
+					#statements
+					userPassword=""
+					userPassword="$(fn_getPassword)"
+
+				if [[ "$userPassword" ]]; then
+					#statements
+					authenticatedRestart=true
+					expect -c "
+					log_user 0
+					spawn fdesetup authrestart
+					expect \"Enter the user name:\"
+					send {${loggedInUser}}
+					send \r
+					expect \"Enter the password for user '{${loggedInUser}}':\"
+					send {${userPassword}}
+					send \r
+					log_user 1
+					expect eof
+					"
+				fi # if there is a userPassword entered
+
+				fvUnlockErrorNotice='There was error with the authorized restart. Your password may be incorrect, out of sync, or blank.
+
+	Click "Try Again" or "Cancel".'
+		
+				#notice
+				fvUnlockErrorButton=`"$jhPath" -windowType hud -lockHUD -heading "$fvUnlockHeading" -windowPostion lr -title "$title" -description "$fvUnlockErrorNotice" -icon "$icon" -timeout 300 -countdown -alignCountdown center -button1 "Cancel" -button2 "Try Again" `
+				if [[ "$fvUnlockErrorButton" = 2 ]]; then
+					#statements
+					passwordLooper=0
+				else
+					authenticatedRestart=false
+					passwordLooper=1
+				fi # user chose to try again
+
+				done 
+
+			fi # if the user chose to try an authenticated restart
+
+		fi # if user can unlock a disk supporting autheciated restart
+
+##########################################################################################
+##									Standard reboot										##
+##########################################################################################
+		
+		if [ $loggedInUser ] && [[ "$authenticatedRestart" != true ]] ; then
 		# message
 		notice='In order for the changes to complete you must restart your computer. Please save your work and click "Restart Now" within the allotted time. 
 	
@@ -194,10 +278,12 @@ Your computer will be automatically restarted at the end of the countdown.'
 		#notice
 		restartclickbutton=`"$jhPath" -windowType hud -lockHUD -windowPostion lr -title "$title" -description "$notice" -icon "$icon" -timeout 3600 -countdown -alignCountdown center -button1 "Restart Now"`
 	
-			
-			if [[ "$osMajor" -ge 14 ]]; then
+			if [[ "$authenticatedRestart" = true ]] ;then
+				log4_JSS "ENTRY 2: User chose to restart with an authenticatedRestart"
+
+			elif [[ "$osMajor" -ge 14 ]]; then
 				#statements
-				sudo shutdown -r now
+				shutdown -r now
 			else
 				# Nicer restart (http://apple.stackexchange.com/questions/103571/using-the-terminal-command-to-shutdown-restart-and-sleep-my-mac)
 				osascript -e 'tell app "System Events" to restart'
@@ -208,7 +294,7 @@ Your computer will be automatically restarted at the end of the countdown.'
 			# while no on eis logged in you can do a force shutdown
 
 			logInUEX "no one is logged in forcing a restart."
-			sudo shutdown -r now
+			shutdown -r now
 			# Nicer restart (http://apple.stackexchange.com/questions/103571/using-the-terminal-command-to-shutdown-restart-and-sleep-my-mac)
 # 			osascript -e 'tell app "System Events" to restart'
 		fi
