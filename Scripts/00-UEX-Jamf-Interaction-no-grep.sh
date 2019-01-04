@@ -2192,7 +2192,7 @@ Current work may be lost if you do not save before proceeding."
 
 			fn_generatateApps2quit
 
-			if [[ $apps2kill != "" ]] ; then
+			if [[ $apps2kill != "" ]] && [[ "$checks" != *"nopreclose"* ]] ; then
 
 				# if the app to re launc is not blank it means the apps wer quit manuaully when the install window was up
 				if 	[ -z "${apps2Relaunch[@]}" ] ; then
@@ -2217,7 +2217,7 @@ Current work may be lost if you do not save before proceeding."
 			fi
 		fi
 
-		sleep 1
+		sleep 2
 		fn_generatateApps2quit
 
 		if [[ "$apps2quit" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$apps2ReOpen" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$checks" == *"saveallwork"* ]] && [ -z $PostponeClickResult ] ; then
