@@ -39,7 +39,7 @@ fn_getPlistValue () {
 }
 
 logInUEX () {
-	sudo echo $(date)	$compname	:	"$1" >> "$logfilepath"
+	echo $(date)	$compname	:	"$1" >> "$logfilepath"
 }
 
 logInUEX4DebugMode () {
@@ -50,7 +50,7 @@ logInUEX4DebugMode () {
 }
 
 log4_JSS () {
-	sudo echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
+	echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
 }
 
 ##########################################################################################
@@ -110,7 +110,7 @@ for i in $plists ; do
 		# Enough time has passed 
 		# start the install
 			log4_JSS "Enough time has passed starting the install"
-			sudo /usr/local/bin/jamf policy -trigger "$policyTrigger"
+			/usr/local/bin/jamf policy -trigger "$policyTrigger"
 		fi
 	elif [[ $loggedInUser == "" ]] && [[ $loginscreeninstall == false ]] ; then
 		# skipping install
@@ -126,8 +126,8 @@ for i in $plists ; do
 		logInUEX "All requrements met"
 		logInUEX "Starting Install"
 
-		sudo killall loginwindow
-		sudo /usr/local/bin/jamf policy -trigger "$policyTrigger"
+		killall loginwindow
+		/usr/local/bin/jamf policy -trigger "$policyTrigger"
 	fi
 	
 done

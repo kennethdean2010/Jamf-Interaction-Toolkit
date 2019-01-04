@@ -440,7 +440,7 @@ fn_check4PendingRestartsOrLogout () {
 			# the computer has rebooted since $runDateFriendly
 			#delete the plist
 			logInUEX "Deleting the restart plsit $i because the computer has rebooted since $runDateFriendly"
-			sudo rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
+			rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
 		else 
 			# the computer has NOT rebooted since $runDateFriendly
 			log4_JSS "Other restarts are queued"
@@ -690,7 +690,7 @@ checking for updates..."
 fi # selfservice package
 
 	fn_trigger "set_sus_server"
-	sudo softwareupdate -l > $swulog
+	softwareupdate -l > $swulog
 
 	updates=`cat $swulog`
 
@@ -720,7 +720,7 @@ Downloading updates."
 			"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
 		fi # selfservice package
 		# pre download updates
-		sudo softwareupdate -d --all
+		 softwareupdate -d --all
 	fi
 
 	if [ $updatesavail = true ] ; then 
@@ -2813,8 +2813,8 @@ EOT
 	/bin/rm "$installJSSfolder"* 2> /dev/null
 	
 	# Install notification Place holder
-	# sudo /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
-	# sudo /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
+	# /usr/libexec/PlistBuddy -c "add name string ${heading}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
+	# /usr/libexec/PlistBuddy -c "add checks string ${checks}" /Library/Application\ Support/JAMF/UEX/install_jss/"$packageName".plist > /dev/null 2>&1
 
 	fn_addPlistValue "name" "string" "$heading" "install_jss" "$packageName.plist"
 	fn_addPlistValue "checks" "string" "$checks" "install_jss" "$packageName.plist"
@@ -2898,9 +2898,9 @@ EOT
 
 # 	if [[ $type == "package" ]] ; then	
 # 	# remove immutable bits from package so it can be deleted
-# 		sudo echo $(date)	$compname	:	Unlocking the package >> "$logfilepath"
-# 		sudo chflags -R noschg "$pathToPackage" > /dev/null 2>&1
-# 		sudo chflags -R nouchg "$pathToPackage" > /dev/null 2>&1
+# 		echo $(date)	$compname	:	Unlocking the package >> "$logfilepath"
+# 		chflags -R noschg "$pathToPackage" > /dev/null 2>&1
+# 		chflags -R nouchg "$pathToPackage" > /dev/null 2>&1
 # 	fi
 	
 	##################
@@ -3048,7 +3048,7 @@ $action completed."
 	
 	# delete package installation
 # 	logInUEX "Deleting package file >> "$logfilepath"
-# 	sudo /bin/rm -R "$pathToPackage" > /dev/null 2>&1
+# 	/bin/rm -R "$pathToPackage" > /dev/null 2>&1
 	
 
 fi
@@ -3076,14 +3076,14 @@ else
 	for PKG in "${packages[@]}"; do
 		pathtopkg="$waitingRoomDIR"
 		pkg2install="$pathtopkg""$PKG"
-		# sudo /bin/rm "$pkg2install" > /dev/null 2>&1
+		# /bin/rm "$pkg2install" > /dev/null 2>&1
 	done
 		
 # 	if [ debug != true ] ; then
 # 		# clear resouces
 # 		for i in "${resources[@]}" ; do
 # 			if [[ -e $i ]]; then
-# 				sudo /bin/rm -R "$i" > /dev/null 2>&1
+# 				/bin/rm -R "$i" > /dev/null 2>&1
 # 				echo deleting "$i"
 # 			fi
 # 		done
@@ -3091,7 +3091,7 @@ else
 	
 # 	if [ debug != true ] ; then
 # 		for i in "${plistFolders[@]}"; do
-# 			sudo /bin/rm -R "$i" > /dev/null 2>&1
+# 			/bin/rm -R "$i" > /dev/null 2>&1
 # 			echo deleting "$i"
 # 		done
 # 	fi

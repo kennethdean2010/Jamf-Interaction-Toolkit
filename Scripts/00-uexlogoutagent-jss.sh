@@ -83,7 +83,7 @@ fn_getPlistValue () {
 }
 
 logInUEX () {
-	sudo echo $(date)	$compname	:	"$1" >> "$logfilepath"
+	echo $(date)	$compname	:	"$1" >> "$logfilepath"
 }
 
 logInUEX4DebugMode () {
@@ -94,7 +94,7 @@ logInUEX4DebugMode () {
 }
 
 log4_JSS () {
-	sudo echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
+	echo $(date)	$compname	:	"$1"  | tee -a "$logfilepath"
 }
 
 ##########################################################################################
@@ -161,7 +161,7 @@ for i in "${resartPlists[@]}" ; do
 		# the computer has rebooted since $runDateFriendly
 		#delete the plist
 		logInUEX "Deleting the restart plsit $i because the computer has rebooted since $runDateFriendly"
-		sudo rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
+		rm "/Library/Application Support/JAMF/UEX/restart_jss/$i"
 	else 
 		# the computer has NOT rebooted since $runDateFriendly
 		lastline=`awk 'END{print}' "$logfilepath"`
@@ -207,7 +207,7 @@ if [[ $restart != "true" ]] ; then
 		if [[ $timeSinceReboot -gt 0 ]] || [ -z "$plistrunDate" ]  ; then
 			# the computer has rebooted since $runDateFriendly
 			#delete the plist
-			sudo rm "/Library/Application Support/JAMF/UEX/logout_jss/$i"
+			rm "/Library/Application Support/JAMF/UEX/logout_jss/$i"
 			logInUEX "There are no restart interactions required"
 			logInUEX "Deleted logout plist because the user has restarted already"
 			
@@ -215,7 +215,7 @@ if [[ $restart != "true" ]] ; then
 		# if the user has a fresh login since then delete the plist
 		# if the plist has been touched once then the user has been logged out once
 		# then delete the plist
-			sudo rm "/Library/Application Support/JAMF/UEX/logout_jss/$i"
+			rm "/Library/Application Support/JAMF/UEX/logout_jss/$i"
 			logInUEX "Deleted logout plist because the user has logged out already"
 		elif [[ "$plistloggedInUser" != "$loggedInUser" ]] ; then
 		# if the user in the plist is not the user as the one currently logged in do not force a logout
@@ -225,7 +225,7 @@ if [[ $restart != "true" ]] ; then
 		# the user has NOT logged out since $plistrunDateFriendly
 		# change the plist state to checked=true so that it's deleted the next time.
 			sleep 1
-			sudo /usr/libexec/PlistBuddy -c "set checked true" "/Library/Application Support/JAMF/UEX/logout_jss/$i"
+			/usr/libexec/PlistBuddy -c "set checked true" "/Library/Application Support/JAMF/UEX/logout_jss/$i"
 			lastline=`awk 'END{print}' "$logfilepath"`
 			if [[ "$lastline" != *"Notifying the user"* ]] ; then 
 				logInUEX "There are no restart interactions required."
@@ -239,9 +239,9 @@ if [[ $restart != "true" ]] ; then
 	done
 elif [[ $restart == "true" ]] ; then 
 # start the restart plist so the user will prompted to restart instead
-# 	sudo launchctl load -w /Library/LaunchDaemons/com.adidas-group.UEX-restart.plist > /dev/null 2>&1
+# 	launchctl load -w /Library/LaunchDaemons/com.adidas-group.UEX-restart.plist > /dev/null 2>&1
 	
-	sudo /usr/local/bin/jamf policy -trigger uexrestartagent &
+	/usr/local/bin/jamf policy -trigger uexrestartagent &
 fi
 unset IFS
 
@@ -269,7 +269,7 @@ if [ $loggedInUser ] ; then
        
         if [[ "$osMajor" -ge 14 ]]; then
 	        # Force logout by killing the login window for that user
-	        messylogout`ps -Ajc | grep loginwindow | grep "$loggedInUser" | grep -v grep | awk '{print $2}' | sudo xargs kill`
+	        messylogout`ps -Ajc | grep loginwindow | grep "$loggedInUser" | grep -v grep | awk '{print $2}' | xargs kill`
 		else
 			 # Nicer logout (http://apple.stackexchange.com/questions/103571/using-the-terminal-command-to-shutdown-restart-and-sleep-my-mac)
 			osascript -e 'tell application "loginwindow" to «event aevtrlgo»'

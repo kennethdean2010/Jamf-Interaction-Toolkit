@@ -1,4 +1,3 @@
-
 #!/bin/sh
 
 jamfBinary="/usr/local/jamf/bin/jamf"
