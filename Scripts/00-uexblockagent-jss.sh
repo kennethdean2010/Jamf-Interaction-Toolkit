@@ -25,7 +25,7 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # It run through the list of apps checks to see if they are running and then kills them.
 # 
 # Name: Block-notification.sh
-# Version Number: 4.0.1
+# Version Number: 4.1
 # 
 # Created Jan 18, 2016 by 
 # David Ramirez (David.Ramirez@adidas.com)
@@ -264,4 +264,5 @@ exit 0
 # Sep 1, 2016 	v2.0	--DR--	Debug mode added
 # Sep 7, 2016 	v2.0	--DR--	Updated to clean up Application quitting and only target process from /$app/Contents/MacOS/
 # Apr 24, 2018 	v3.7	--DR--	Funtctions added
+# Oct 24, 2018 	v4.0	--DR--	All Change logs are available now in the release notes on GITHUB
 # 

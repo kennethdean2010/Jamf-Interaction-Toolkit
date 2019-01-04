@@ -14,3 +14,9 @@ done
 $jamfBinary recon
 
 exit 0
+
+##########################################################################################
+##									Version History										##
+##########################################################################################
+# 
+# Oct 24, 2018 	v4.0	--DR--	All Change logs are available now in the release notes on GITHUB

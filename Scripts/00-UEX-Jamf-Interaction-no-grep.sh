@@ -23,8 +23,8 @@ SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftwa
 # 
 # User experience Post installation script to be bundled with PKG.
 # 
-# Version Number: 4.0.1
-	uexvers=4.0.1
+# Version Number: 4.1
+	uexvers=4.1
 # 
 # Created Jan 18, 2016 by David Ramirez
 #
@@ -3162,10 +3162,6 @@ fi
 # Aug 26, 2018	v3.8	--DR--	Quitting Jamf helper now acts as if you've ignored it triggering inactivity delay.
 # Aug 26, 2018	v3.8	--DR--	moved some logging to debug mode only and increase logging on UEX dialogs
 # Sep 11, 2018	v3.8	--DR--	making reopen apps function built in
-
-
-
-
-
-
-
+# Oct 24, 2018 	v4.0	--DR--	All Change logs are available now in the release notes on GITHUB
+# 
+# 
