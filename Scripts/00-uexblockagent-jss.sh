@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
+loggedInUserHome=`dscl . read /Users/$loggedInUser NFSHomeDirectory | awk '{ print $2 }'`
 
 ##########################################################################################
 ##								Paramaters for Branding									##
@@ -13,7 +14,7 @@ customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIco
 
 # if you you jamf Pro 10 to brand the image for you self sevice icon will be here
 # or you can customize this with an image you've included in UEX resources or is already local on the computer
-SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
+SelfServiceIcon="$loggedInUserHome/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
 
 ##########################################################################################
 ##########################################################################################

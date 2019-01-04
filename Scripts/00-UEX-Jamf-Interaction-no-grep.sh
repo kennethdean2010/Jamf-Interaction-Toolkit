@@ -1,5 +1,6 @@
 #!/bin/sh
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
+loggedInUserHome=`dscl . read $loggedInUserHome/ NFSHomeDirectory | awk '{ print $2 }'`
 
 ##########################################################################################
 ##								Paramaters for Branding									##
@@ -13,7 +14,7 @@ customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIco
 
 # if you you jamf Pro 10 to brand the image for you self sevice icon will be here
 # or you can customize this with an image you've included in UEX resources or is already local on the computer
-SelfServiceIcon="/Users/$loggedInUser/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
+SelfServiceIcon="$loggedInUserHome/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
 
 ##########################################################################################
 ##########################################################################################
@@ -364,7 +365,7 @@ fn_generatateApps2quit () {
 				# Find the apss in /Applications/ and ~/Applications/ and open as the user
 				if [[ "$checks" != *"uninstall"* ]]; then
 					appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$app"`
-					userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$app" 2> /dev/null`
+					userAppFound=`/usr/bin/find "$loggedInUserHome/Applications" -maxdepth 3 -iname "$app" 2> /dev/null`
 				fi
 				
 				
@@ -3013,7 +3014,7 @@ $action completed."
 			userAppFound=""
 			# Find the apss in /Applications/ and ~/Applications/ and open as the user
 			appFound=`/usr/bin/find "/Applications" -maxdepth 3 -iname "$relaunchAppName"`
-			userAppFound=`/usr/bin/find "/Users/$loggedInUser/Applications" -maxdepth 3 -iname "$relaunchAppName" 2> /dev/null`
+			userAppFound=`/usr/bin/find "$loggedInUserHome/Applications" -maxdepth 3 -iname "$relaunchAppName" 2> /dev/null`
 			
 			if [[ "$appFound" ]]; then
 				app2Open="$appFound"
