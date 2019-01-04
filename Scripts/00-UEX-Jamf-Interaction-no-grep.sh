@@ -1,6 +1,6 @@
 #!/bin/sh
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
-loggedInUserHome=`dscl . read $loggedInUserHome/ NFSHomeDirectory | awk '{ print $2 }'`
+loggedInUserHome=`dscl . read /Users/$loggedInUser NFSHomeDirectory | awk '{ print $2 }'`
 
 ##########################################################################################
 ##								Paramaters for Branding									##
@@ -15,6 +15,10 @@ customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIco
 # if you you jamf Pro 10 to brand the image for you self sevice icon will be here
 # or you can customize this with an image you've included in UEX resources or is already local on the computer
 SelfServiceIcon="$loggedInUserHome/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
+
+diskicon="/System/Library/Extensions/IOStorageFamily.kext/Contents/Resources/Internal.icns"
+
+ServiceDeskName="IT Support"
 
 ##########################################################################################
 ##########################################################################################
@@ -83,7 +87,7 @@ installDuration=$7
 # default is 1
 # maxdefer="1"
 # LABEL: maximum deferral - Must be integer
-maxdefer="$8"
+maxdeferConsolidated="$8"
 
 # Insert name of PKG files here that are copying to /private/tmp/ during install
 # Must be in the format of the example to execute properly
@@ -100,14 +104,14 @@ customMessage=${11}
 
 
 # fordebugging
-# NameConsolidated="Apple;Adobe Creative Apps;1.0"
-# checks="block power update debug"
-# apps="Adobe Illustrator CC 2017.app;Adobe Photoshop CC 2017.app;Adobe IndesignCC  2017.app;Adobe BridgeCC  2017.app;Adobe Media Encoder CC 2017.app;Adobe Acrobat.app;ExtendScript Toolkit.app;Adobe Extension Manager CC.app"
-# installDuration=60
-# maxdefer=4
-# packages=
-# triggers=None
-# customMessage=""
+NameConsolidated="Apple;Adobe Creative Apps;1.0;600"
+checks="block restart update debug"
+apps="Adobe Illustrator CC 2017.app;Adobe Photoshop CC 2017.app;Adobe IndesignCC  2017.app;Adobe BridgeCC  2017.app;Adobe Media Encoder CC 2017.app;Adobe Acrobat.app;ExtendScript Toolkit.app;Adobe Extension Manager CC.app"
+installDuration=60
+maxdeferConsolidated=4
+packages=
+triggers=None
+customMessage=""
 
 ##########################################################################################
 ##										FUNCTIONS										##
@@ -509,8 +513,6 @@ fn_check4PendingRestartsOrLogout () {
 }
 
 
-
-
 ##########################################################################################
 ##									SSD Calculations									##
 ##########################################################################################
@@ -537,7 +539,6 @@ if [[ "$checks" == *"block"* ]] && [[ $installDuration -lt 5 ]] ; then
 fi
 
 
-
 ##########################################################################################
 ##								Pre Processing of Variables								##
 ##########################################################################################
@@ -551,6 +552,7 @@ set -- "$triggers"
 declare -a triggers=($*)
 UEXpolicyTrigger=$(echo "${triggers[0]}" | tr '[:upper:]' '[:lower:]')
 UEXcachingTrigger="$UEXpolicyTrigger""_cache"
+UEXhelpticketTrigger="$UEXpolicyTrigger""_helpticket"
 unset triggers[0]
 
 unset IFS
@@ -558,9 +560,31 @@ unset IFS
 AppVendor=${NameConsolidated[0]}
 AppName=${NameConsolidated[1]}
 AppVersion=${NameConsolidated[2]}
-SRnumber=${NameConsolidated[3]}
-RFCnumber=${NameConsolidated[4]}
+spaceRequired=${NameConsolidated[3]}
 
+
+##########################################################################################
+##								Pre Processing of Defer								##
+##########################################################################################
+
+if [[ $spaceRequired ]] || [[ maxdeferConsolidated == *";"* ]] then
+	IFS=";"
+	set -- "$maxdeferConsolidated" 
+	declare -a maxdeferConsolidated=($*)
+	maxdefer=${maxdeferConsolidated[0)]}
+	diskCheckDelaylimit=${maxdeferConsolidated[1]}
+	
+
+else
+	maxdefer=$maxdeferConsolidated
+fi
+
+# set a default disk delay limit if they haven't been set
+if [[ "$checks" == *"critical"* ]] ;then
+	diskCheckDelaylimit=1
+elif [[ -z $diskCheckDelaylimit ]] ;then
+	diskCheckDelaylimit=3
+fi
 ##########################################################################################
 #								Package name Processing									 #
 ##########################################################################################
@@ -1011,10 +1035,17 @@ logInUEX "******* START UEX Detail ******"
 logInUEX "User Experience Version: $uexvers"
 logInUEX "AppVendor=$AppVendor"
 logInUEX "AppName=$AppName"
+if [[ $spacerequired ]]; then
+	logInUEX "spaceRequired=$spaceRequired"
+fi
 logInUEX "checks=$checks"
 if [[ "$checks" == *"quit"* ]] || [[ "$checks" == *"block"* ]] ; then logInUEX "$apps=$apps2block" ; fi
 logInUEX "altpaths=${altpaths[@]}"
 logInUEX "maxdefer=$maxdefer"
+
+if [[ $diskCheckDelaylimit ]] ; then 
+	logInUEX "diskCheckDelaylimit=$diskCheckDelaylimit"
+fi
 logInUEX "packages=${packages[@]}"
 logInUEX "command=$command"
 logInUEX "******* END UEX Detail ******"
@@ -1029,7 +1060,7 @@ logInUEX "******* script started ******"
 
 if [[ ! -e "$jamfBinary" ]] ; then 
 warningmsg=`"$CocoaDialog" ok-msgbox --icon caution --title "$title" --text "Error" \
-    --informative-text "There is Scheduled $action being attempted but the computer doesn't have JAMF Management software installed correctly. Please contact the service desk for support." \
+    --informative-text "There is Scheduled $action being attempted but the computer doesn't have JAMF Management software installed correctly. Please contact $ServiceDeskName for support." \
     --float --no-cancel`
     badvariable=true
     logInUEX "ERROR: JAMF binary not found"
@@ -1038,7 +1069,7 @@ fi
 jamfhelper="/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper"
 if [[ ! -e "$jamfhelper" ]] ; then 
 warningmsg=`"$CocoaDialog" ok-msgbox --icon caution --title "$title" --text "Error" \
-    --informative-text "There is Scheduled $action being attempted but the computer doesn't have JAMF Management software installed correctly. Please contact the service desk for support." \
+    --informative-text "There is Scheduled $action being attempted but the computer doesn't have JAMF Management software installed correctly. Please contact $ServiceDeskName for support." \
     --float --no-cancel`
     badvariable=true
     logInUEX "ERROR: jamfHelper not found"
@@ -1147,6 +1178,30 @@ if [[ $installDuration =~ ^-?[0-9]+$ ]] ; then
 else
 	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'installDuration' is not set correctly. 
+	
+It must be an integer greater than 0."
+	badvariable=true
+	logInUEX "ERROR: The variable 'installDuration' is not set correctly."
+fi
+##########################################################################################
+if [[ $spaceRequired ]] && [[ $spaceRequired =~ ^-?[0-9]+$ ]] ; then 
+	echo integer > /dev/null 2>&1 &
+elif [[ $spaceRequired ]] ; then 
+# this implies to only check this if it's not a variable.
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+    --informative-text "Error: The variable 'spaceRequired' is not set correctly. 
+	
+It must be an integer greater than 0."
+	badvariable=true
+	logInUEX "ERROR: The variable 'installDuration' is not set correctly."
+fi
+##########################################################################################
+if [[ $diskCheckDelaylimit ]] && [[ $diskCheckDelaylimit =~ ^-?[0-9]+$ ]] ; then 
+	echo integer > /dev/null 2>&1 &
+elif [[ $diskCheckDelaylimit ]] ; then 
+# this implies to only check this if it's not a variable.
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+    --informative-text "Error: The variable 'diskCheckDelaylimit' is not set correctly. 
 	
 It must be an integer greater than 0."
 	badvariable=true
@@ -1511,13 +1566,63 @@ postponesLeft=$((maxdefer-delayNumber))
 
 logInUEX4DebugMode "postponesLeft is $postponesLeft"
 
+##########################################################################################
+##									Disk Space Check									##
+##########################################################################################
+	
+diskCheckDelayNumber=$(fn_getPlistValue "diskCheckDelayNumber" "defer_jss" "$packageName.plist")
+
+if [[ -z "$diskCheckDelayNumber" ]]; then
+	diskCheckDelayNumber=0
+fi
+
+diskRemindersLeft=$((diskCheckDelaylimit-diskCheckDelayNumber))
+
+logInUEX4DebugMode "diskRemindersLeft is $diskRemindersLeft"
+
+
+if [[ "$spaceRequired" ]] ; then
+#####
+# Disk Space Check
+	free=`diskutil info / | grep "Free Space"`
+	if [ -z "$free" ] ; then
+		free=`diskutil info / | grep "Available" | awk '{print $4}'`
+		unit=`diskutil info / | grep "Available" | awk '{print $5}'`
+	else
+		free=`diskutil info / | grep "Free Space" | awk '{print $4}'`
+		unit=`diskutil info / | grep "Free Space" | awk '{print $5}'`
+	fi
+
+	space=${free%.*}
+
+	if [[ "$unit" == GB ]] ; then
+		convertedfree=$space
+	elif [[ "$unit" == MB ]] ; then
+		convertedfree=0
+	elif [[ "$unit" == TB ]] ; then
+		convertedfree=$(($space * 1000))
+	fi
+
+	if [ $convertedfree -lt $spaceRequired ] ; then
+		insufficientSpace=true
+		remaining=`echo $spaceRequired - $convertedfree | bc`
+		log4_JSS "The computer has insufficient space."
+		log4_JSS "Free in GB: $convertedfree"
+		log4_JSS "Required in GB: $spaceRequired"
+		log4_JSS "Space needed in GB: $remaining"
+	fi
+
+fi # is there is a space requirement
+
+####
+
 #########################################################################################
 ##					 		PACKAGE CHECK FOR DEPLOYED SOFWARE							##
 ##########################################################################################
 
 fn_check4Packages ""
 
-if [[ $packageMissing = true ]] && [[ $selfservicePackage != true ]]; then
+if [[ $packageMissing = true ]] && [[ $selfservicePackage != true ]] && [[ $insufficientSpace != true ]]; then
 	logInUEX4DebugMode "not selfservice" 
 	fn_trigger "$UEXcachingTrigger"
 	sleep 5
@@ -1775,6 +1880,56 @@ selfservicerunoption="Open up $SelfServiceAppName from $SSLocation and start the
 Otherwise you will be reminded about the $action automatically after your chosen interval."
 
 ##########################################################################################
+##								Insufficient Space Notification							##
+##########################################################################################
+
+if [[ "$checks" == *"critical"* ]] ; then
+	spaceMsg+="This is a critical $action.
+"
+fi
+
+spaceMsg+="Currently your computer does not have enough disk space to complete the $action. Please clear $remaining GB from your computer.
+"
+
+
+if [ $selfservicePackage != true ] && [[ $diskCheckDelayNumber -lt $diskCheckDelaylimit ]] ; then
+
+if [[ $diskRemindersLeft -gt 1 ]]; then
+	spaceMsg+="
+You'll be reminded about this $action again tomorrow after 9am. You have $diskRemindersLeft more days left to clear up the space.
+"
+else # no posptonse aviailable
+	spaceMsg+="
+You'll be reminded about this $action again tomorrow after 9am. You have $diskRemindersLeft more day left to clear up the space.
+"
+
+elif [ $selfservicePackage != true ] && [[ "$checks" != *"helpticket"* ]] && [[ $diskCheckDelayNumber -ge $diskCheckDelaylimit ]] ; then
+	#statements
+	spaceMsg+="
+You'll be reminded about this $action again tomorrow after 9am.
+"
+elif [ $selfservicePackage != true ] && [[ "$checks" == *"helpticket"* ]] && [[ $diskCheckDelayNumber -ge $diskCheckDelaylimit ]] ; then
+	#statements
+	spaceMsg+="
+$ServiceDeskName has been notified that you have not cleared the data and will be contacting you. You'll also be reminded about this $action again tomorrow after 9am.
+"
+	triggerNgo "$UEXhelpticketTrigger"
+fi # if not  a self sef service run and not crtical and with enough delays lefft for the disk reminder
+
+if [ $selfservicePackage = true ] ; then
+	spaceMsg+="
+Please re-run the $action from $SelfServiceAppName when you've cleared up the space.
+"
+fi 
+
+spaceMsg+="
+
+Click on the 'Find Clutter'
+
+Please contact $ServiceDeskName if you need support. 
+Thank you!"
+
+##########################################################################################
 ##								INSTALL LOGOUT MESSAGE SETTING							##
 ##########################################################################################
 # notice about needing charger connect if you want to install at logout
@@ -1939,6 +2094,8 @@ for app in "${presentationApps[@]}" ; do
 done
 
 
+
+
 ##########################################################################################
 ##								PRIMARY DIALOGS FOR INTERACTION							##
 ##########################################################################################
@@ -1957,7 +2114,23 @@ while [ $reqlooper = 1 ] ; do
 		timeLimit=30
 	fi
 	
-	if [ $silentPackage = true ] ; then
+	if [[ "$insufficientSpace" = true ]] ; then
+
+		diskCheckDelayNumber
+		#Critical 
+		if [[ "$checks" == *"critical"* ]] && [[ "$diskCheckDelayNumber" -gt 1 ]]; then
+			log4_JSS "Critical Install: User"
+		elif [ $selfservicePackage = true ] ; then 
+			#statements
+
+		else
+
+		fi
+
+
+
+
+	elif [ $silentPackage = true ] ; then
 		log4_JSS "Slient packge install deployment."
 		echo 0 > $PostponeClickResultFile &
 		PostponeClickResult=0
@@ -2015,6 +2188,7 @@ while [ $reqlooper = 1 ] ; do
 		if [[ "$checks" == *"critical"* ]] ; then
 			log4_JSS "Showing the $action window. Critical"
 			"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "OK" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
+		
 		else
 			if [ $selfservicePackage = true ] ; then 
 				"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$PostponeMsg" -button1 "Start now" -button2 "Cancel" -icon "$icon" -windowPosition center -timeout $jhTimeOut | grep -v 239 > $PostponeClickResultFile &
@@ -2391,7 +2565,7 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 		log4_JSS "SELF SERVICE PACKAGE: Skipping Delay Service"
 
 		fn_check4Packages ""
-		if [[ $packageMissing = true ]]; then
+		if [[ $packageMissing = true ]] && [[ $insufficientSpace != true ]]; then
 			triggerNgo $UEXcachingTrigger
 		fi
 
@@ -2414,6 +2588,7 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 			fn_setPlistValue "delayDateFriendly" "$delayDateFriendly" "defer_jss" "$packageName.plist"
 			fn_setPlistValue "delayNumber" "$delayNumber" "defer_jss" "$packageName.plist"
 			fn_setPlistValue "presentationDelayNumber" "$presentationDelayNumber" "defer_jss" "$packageName.plist"
+			fn_setPlistValue "diskCheckDelayNumber" "$diskCheckDelayNumber" "defer_jss" "$packageName.plist"
 			fn_setPlistValue "inactivityDelay" "$inactivityDelay" "defer_jss" "$packageName.plist"
 			fn_setPlistValue "loginscreeninstall" "$loginscreeninstall" "defer_jss" "$packageName.plist"
 			fn_setPlistValue "policyTrigger" "$UEXpolicyTrigger" "defer_jss" "$packageName.plist"
@@ -2427,6 +2602,7 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 			fn_addPlistValue "delayDateFriendly" "string" "$delayDateFriendly" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "delayNumber" "string" "$delayNumber" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "presentationDelayNumber" "string" "$presentationDelayNumber" "defer_jss" "$packageName.plist"
+			fn_addPlistValue "diskCheckDelayNumber" "string" "$diskCheckDelayNumber" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "inactivityDelay" "string" "$inactivityDelay" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "loginscreeninstall" "string" "$loginscreeninstall" "defer_jss" "$packageName.plist"
 			fn_addPlistValue "policyTrigger" "string" "$UEXpolicyTrigger" "defer_jss" "$packageName.plist"
@@ -2459,7 +2635,7 @@ fi
 	###########################################
 	fn_check4Packages ""
 
-	if [[ $packageMissing = true ]] && [[ $selfservicePackage = true ]]; then
+	if [[ $packageMissing = true ]] && [[ $selfservicePackage = true ]] && [[ $insufficientSpace != true ]]; then
 		status="$heading,
 Downloading packages..."
 		"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"
