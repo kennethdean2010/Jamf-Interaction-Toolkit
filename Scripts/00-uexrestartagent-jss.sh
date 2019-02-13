@@ -119,10 +119,7 @@ for i in "${plists[@]}" ; do
 	# Check all the plist in the folder for any required actions
 	# if the user has already had a fresh restart then delete the plist
 	# other wise the advise and schedule the logout.
-	# name=`/usr/libexec/PlistBuddy -c "print name" "/Library/Application Support/JAMF/UEX/restart_jss/$i"`
-	# packageName=`/usr/libexec/PlistBuddy -c "print packageName" "/Library/Application Support/JAMF/UEX/restart_jss/$i"`
-	# plistrunDate=`/usr/libexec/PlistBuddy -c "print runDate" "/Library/Application Support/JAMF/UEX/restart_jss/$i"`
-
+	
 	name=$(fn_getPlistValue "name" "restart_jss" "$i")
 	packageName=$(fn_getPlistValue "packageName" "restart_jss" "$i")
 	plistrunDate=$(fn_getPlistValue "runDate" "restart_jss" "$i")

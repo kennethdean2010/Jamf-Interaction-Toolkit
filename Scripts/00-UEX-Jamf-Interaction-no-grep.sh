@@ -104,14 +104,14 @@ customMessage=${11}
 
 
 # fordebugging
-NameConsolidated="Apple;Adobe Creative Apps;1.0;600"
-checks="block restart update debug"
-apps="Adobe Illustrator CC 2017.app;Adobe Photoshop CC 2017.app;Adobe IndesignCC  2017.app;Adobe BridgeCC  2017.app;Adobe Media Encoder CC 2017.app;Adobe Acrobat.app;ExtendScript Toolkit.app;Adobe Extension Manager CC.app"
-installDuration=60
-maxdeferConsolidated=4
-packages=
-triggers=None
-customMessage=""
+# NameConsolidated="Apple;Adobe Creative Apps;1.0;600"
+# checks="block restart update debug"
+# apps="Adobe Illustrator CC 2017.app;Adobe Photoshop CC 2017.app;Adobe IndesignCC  2017.app;Adobe BridgeCC  2017.app;Adobe Media Encoder CC 2017.app;Adobe Acrobat.app;ExtendScript Toolkit.app;Adobe Extension Manager CC.app"
+# installDuration=60
+# maxdeferConsolidated="82;1"
+# packages=
+# triggers=None
+# customMessage=""
 
 ##########################################################################################
 ##										FUNCTIONS										##
@@ -567,14 +567,12 @@ spaceRequired=${NameConsolidated[3]}
 ##								Pre Processing of Defer								##
 ##########################################################################################
 
-if [[ $spaceRequired ]] || [[ maxdeferConsolidated == *";"* ]] then
+if [[ $spaceRequired ]] || [[ "$maxdeferConsolidated" == *";"* ]] ; then
 	IFS=";"
 	set -- "$maxdeferConsolidated" 
 	declare -a maxdeferConsolidated=($*)
-	maxdefer=${maxdeferConsolidated[0)]}
+	maxdefer=${maxdeferConsolidated[0]}
 	diskCheckDelaylimit=${maxdeferConsolidated[1]}
-	
-
 else
 	maxdefer=$maxdeferConsolidated
 fi
@@ -1571,14 +1569,18 @@ logInUEX4DebugMode "postponesLeft is $postponesLeft"
 ##########################################################################################
 	
 diskCheckDelayNumber=$(fn_getPlistValue "diskCheckDelayNumber" "defer_jss" "$packageName.plist")
+log4_JSS "diskCheckDelayNumber is $diskCheckDelayNumber"
 
 if [[ -z "$diskCheckDelayNumber" ]]; then
 	diskCheckDelayNumber=0
 fi
 
-diskRemindersLeft=$((diskCheckDelaylimit-diskCheckDelayNumber))
+if [[ $diskCheckDelayNumber == *"File Doesn"* ]] ; then diskCheckDelayNumber=0 ; fi
 
-logInUEX4DebugMode "diskRemindersLeft is $diskRemindersLeft"
+log4_JSS "diskCheckDelayNumber is $diskCheckDelayNumber"
+
+diskRemindersLeft=$((diskCheckDelaylimit-diskCheckDelayNumber))
+log4_JSS "diskRemindersLeft is $diskRemindersLeft"
 
 
 if [[ "$spaceRequired" ]] ; then
@@ -1902,8 +1904,11 @@ else # no posptonse aviailable
 	spaceMsg+="
 You'll be reminded about this $action again tomorrow after 9am. You have $diskRemindersLeft more day left to clear up the space.
 "
+fi
 
-elif [ $selfservicePackage != true ] && [[ "$checks" != *"helpticket"* ]] && [[ $diskCheckDelayNumber -ge $diskCheckDelaylimit ]] ; then
+fi
+
+if [ $selfservicePackage != true ] && [[ "$checks" != *"helpticket"* ]] && [[ $diskCheckDelayNumber -ge $diskCheckDelaylimit ]] ; then
 	#statements
 	spaceMsg+="
 You'll be reminded about this $action again tomorrow after 9am.
@@ -2116,16 +2121,20 @@ while [ $reqlooper = 1 ] ; do
 	
 	if [[ "$insufficientSpace" = true ]] ; then
 
-		diskCheckDelayNumber
+		
+
+		"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$spaceMsg" -button1 "OK" -button2 "Find Disk Clutter" -icon "$diskicon" -timeout 600 -windowPosition center -timeout $jhTimeOut | grep -v 239
+		echo 86400 > $PostponeClickResultFile &
+		PostponeClickResult=86400
 		#Critical 
-		if [[ "$checks" == *"critical"* ]] && [[ "$diskCheckDelayNumber" -gt 1 ]]; then
-			log4_JSS "Critical Install: User"
-		elif [ $selfservicePackage = true ] ; then 
-			#statements
+		# if [[ "$checks" == *"critical"* ]] && [[ "$diskCheckDelayNumber" -gt 1 ]]; then
+		# 	log4_JSS "Critical Install: User"
+		# elif [ $selfservicePackage = true ] ; then 
+		# 	#statements
 
-		else
+		# else
 
-		fi
+		# fi
 
 
 
@@ -3272,7 +3281,7 @@ else
 # 			echo deleting "$i"
 # 		done
 # 	fi
-fi # Installations 
+fi # Installations ''
 
 ##########################################################################################
 # 										LOG CLEANUP										 #

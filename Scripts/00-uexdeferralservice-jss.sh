@@ -78,13 +78,6 @@ for i in $plists ; do
 	fi
 	
 	# Process the plist	
-	# delayDate=`/usr/libexec/PlistBuddy -c "print delayDate" /Library/Application\ Support/JAMF/UEX/defer_jss/"$i"`
-	# packagename=`/usr/libexec/PlistBuddy -c "print package" /Library/Application\ Support/JAMF/UEX/defer_jss/$i`
-	# folder=`/usr/libexec/PlistBuddy -c "print folder" /Library/Application\ Support/JAMF/UEX/defer_jss/"$i"`
-	# loginscreeninstall=`/usr/libexec/PlistBuddy -c "print loginscreeninstall" /Library/Application\ Support/JAMF/UEX/defer_jss/"$i"`
-	# checks=`/usr/libexec/PlistBuddy -c "print checks" /Library/Application\ Support/JAMF/UEX/defer_jss/"$i"`
-	# policyTrigger=`/usr/libexec/PlistBuddy -c "print policyTrigger" /Library/Application\ Support/JAMF/UEX/defer_jss/"$i"`
-
 	delayDate=$(fn_getPlistValue "delayDate" "defer_jss" "$i")
 	packagename=$(fn_getPlistValue "package" "defer_jss" "$i")
 	folder=$(fn_getPlistValue "folder" "defer_jss" "$i")
