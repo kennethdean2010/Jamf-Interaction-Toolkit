@@ -112,6 +112,7 @@ customMessage=${11}
 # packages=
 # triggers=None
 # customMessage=""
+# selfservicePackage=true
 
 ##########################################################################################
 ##										FUNCTIONS										##
@@ -1928,11 +1929,22 @@ Please re-run the $action from $SelfServiceAppName when you've cleared up the sp
 fi 
 
 spaceMsg+="
+Use 'Find Clutter' to find 
 
-Click on the 'Find Clutter'
-
-Please contact $ServiceDeskName if you need support. 
+Please contact $ServiceDeskName if you need assistanance. 
 Thank you!"
+
+
+spaceMsg+="
+				
+				
+				
+				
+				
+				
+				
+				
+"
 
 ##########################################################################################
 ##								INSTALL LOGOUT MESSAGE SETTING							##
@@ -2123,7 +2135,7 @@ while [ $reqlooper = 1 ] ; do
 
 		
 
-		"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$spaceMsg" -button1 "OK" -button2 "Find Disk Clutter" -icon "$diskicon" -timeout 600 -windowPosition center -timeout $jhTimeOut | grep -v 239
+		"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$spaceMsg" -button1 "OK" -button2 "Find Clutter" -icon "$diskicon" -timeout 600 -windowPosition center -timeout $jhTimeOut | grep -v 239
 		echo 86400 > $PostponeClickResultFile &
 		PostponeClickResult=86400
 		#Critical 
