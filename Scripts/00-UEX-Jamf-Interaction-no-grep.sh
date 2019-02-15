@@ -105,10 +105,10 @@ customMessage=${11}
 
 # fordebugging
 # NameConsolidated="Apple;Adobe Creative Apps;1.0;600"
-# checks="block restart update debug"
+# checks="block restart update debug helpticket"
 # apps="Adobe Illustrator CC 2017.app;Adobe Photoshop CC 2017.app;Adobe IndesignCC  2017.app;Adobe BridgeCC  2017.app;Adobe Media Encoder CC 2017.app;Adobe Acrobat.app;ExtendScript Toolkit.app;Adobe Extension Manager CC.app"
 # installDuration=60
-# maxdeferConsolidated="82;1"
+# maxdeferConsolidated="82;0"
 # packages=
 # triggers=None
 # customMessage=""
@@ -1894,22 +1894,7 @@ fi
 spaceMsg+="Currently your computer does not have enough disk space to complete the $action. Please clear $remaining GB from your computer.
 "
 
-
 if [ $selfservicePackage != true ] && [[ $diskCheckDelayNumber -lt $diskCheckDelaylimit ]] ; then
-
-if [[ $diskRemindersLeft -gt 1 ]]; then
-	spaceMsg+="
-You'll be reminded about this $action again tomorrow after 9am. You have $diskRemindersLeft more days left to clear up the space.
-"
-else # no posptonse aviailable
-	spaceMsg+="
-You'll be reminded about this $action again tomorrow after 9am. You have $diskRemindersLeft more day left to clear up the space.
-"
-fi
-
-fi
-
-if [ $selfservicePackage != true ] && [[ "$checks" != *"helpticket"* ]] && [[ $diskCheckDelayNumber -ge $diskCheckDelaylimit ]] ; then
 	#statements
 	spaceMsg+="
 You'll be reminded about this $action again tomorrow after 9am.
@@ -1922,6 +1907,20 @@ $ServiceDeskName has been notified that you have not cleared the data and will b
 	triggerNgo "$UEXhelpticketTrigger"
 fi # if not  a self sef service run and not crtical and with enough delays lefft for the disk reminder
 
+if [ $selfservicePackage != true ] && [[ $diskCheckDelayNumber -lt $diskCheckDelaylimit ]] ; then
+
+if [[ $diskRemindersLeft -gt 1 ]]; then
+	spaceMsg+="
+You have $diskRemindersLeft more days left to clear up the space.
+"
+else # no posptonse aviailable
+	spaceMsg+="
+You have $diskRemindersLeft more day left to clear up the space.
+"
+fi
+
+fi
+
 if [ $selfservicePackage = true ] ; then
 	spaceMsg+="
 Please re-run the $action from $SelfServiceAppName when you've cleared up the space.
@@ -1929,7 +1928,7 @@ Please re-run the $action from $SelfServiceAppName when you've cleared up the sp
 fi 
 
 spaceMsg+="
-Use 'Find Clutter' to find 
+Use 'Find Clutter' to find large files or change your settings to save space.
 
 Please contact $ServiceDeskName if you need assistanance. 
 Thank you!"
