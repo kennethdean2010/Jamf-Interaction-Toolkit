@@ -1124,7 +1124,7 @@ if [[ -z $AppVersion ]] ; then
 fi
 
 ##########################################################################################
-if [[ "$checks" != *"quit"* ]] && [[ "$checks" != *"block"* ]] && [[ "$checks" != *"logout"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"notify"* ]] && [[ "$checks" != *"custom"* ]] && [[ "$checks" != *"saveallwork"* ]] && [[ "$checks" != *"suspackage"* ]] ; then
+if [[ "$checks" != *"quit"* ]] && [[ "$checks" != *"block"* ]] && [[ "$checks" != *"logout"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"notify"* ]] && [[ "$checks" != *"custom"* ]] && [[ "$checks" != *"saveallwork"* ]] && [[ "$checks" != *"suspackage"* ]] && [[ "$checks" != *"macosupgrade"* ]] ; then
 	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'checks' is not set correctly. 
 	
@@ -3220,7 +3220,7 @@ $action completed."
 
 			if [[ "$app2Open" ]] ;then
 				# open the app as the user but in the bacground to it doesn't pull focus
-				sudo -u "$loggedInUser" open -g "$app2Open"
+				sudo -u "$loggedInUser" -H open -g "$app2Open"
 			fi
 		done
 	fi
