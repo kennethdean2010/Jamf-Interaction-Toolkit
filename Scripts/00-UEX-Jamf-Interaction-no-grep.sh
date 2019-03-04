@@ -51,7 +51,7 @@ jamfBinary="/usr/local/jamf/bin/jamf"
 ##									Paramaters for UEX									##
 ##########################################################################################
 
-# NameConsolidated="AppVendor;AppName;AppVersion;SR;RFC"
+# NameConsolidated="AppVendor;AppName;AppVersion;Space Req'd in GB"
 # LABEL: NameConsolidated
 NameConsolidated=$4
 
