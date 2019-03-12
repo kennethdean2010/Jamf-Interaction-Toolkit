@@ -40,6 +40,8 @@ restrictedAppName="/Library/Application Support/JAMF/UEX/resources/User Needs He
 # the below naming convention
 # UEXhelpticketTrigger="$UEXpolicyTrigger""_helpticket"
 UEXhelpticketTrigger="disk_space_help_ticket"
+ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
+
 
 
 ##########################################################################################

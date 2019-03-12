@@ -1,15 +1,10 @@
 #!/bin/bash
 # set -x
+loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
+
 ###################
 # Variables
 ###################
-
-# This enables the interaction for Help Disk Tickets
-# by default it is disabled. For more info on how to use this check the wiki in the Help Desk Ticket Section
-helpTicketsEnabledViaAppRestriction=false
-helpTicketsEnabledViaGeneralStaticGroup=false
-restrictedAppName="User Needs Helps Clearing Space.app"
-
 
 jss_url="https://cubandave.local:8443"
 jss_user="jssadmin"
@@ -21,6 +16,18 @@ UEXCategoryName="User Experience"
 packages=(
 "UEXresourcesInstaller-201903121652.pkg"
 )
+
+# This enables the interaction for Help Disk Tickets
+# by default it is disabled. For more info on how to use this check the wiki in the Help Desk Ticket Section
+helpTicketsEnabledViaAppRestriction=false
+helpTicketsEnabledViaGeneralStaticGroup=true
+restrictedAppName="User Needs Helps Clearing Space.app"
+
+# if you use the general method of addind and removing the requiremnt for help desk support to clear
+# disk space then you should leave these as is
+UEXhelpticketTrigger="disk_space_help_ticket"
+ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
+
 
 ##########################################################################################
 # 								Do not change anything below!							 #
@@ -366,6 +373,89 @@ fn_setScriptParameters () {
 	FNput_postXML scripts "$scriptName" "$scriptParameterXML"
 }
 
+
+fn_CreateAppRestrictionPolicy () {
+
+
+restrictedsoftwareXML="<restricted_software>
+  <general>
+    <name>User Needs Help Clearing Disk Space</name>
+    <process_name>$restrictedAppName</process_name>
+    <match_exact_process_name>true</match_exact_process_name>
+    <send_notification>true</send_notification>
+    <kill_process>true</kill_process>
+    <delete_executable>false</delete_executable>
+    <display_message/>
+    <site>
+      <id>-1</id>
+      <name>None</name>
+    </site>
+  </general>
+  <scope>
+    <all_computers>true</all_computers>
+    <computers/>
+    <computer_groups/>
+    <buildings/>
+    <departments/>
+    <exclusions>
+      <computers/>
+      <computer_groups/>
+      <buildings/>
+      <departments/>
+      <users/>
+    </exclusions>
+  </scope>
+</restricted_software>"
+
+	FNput_postXML restrictedsoftware "User Needs Help Clearing Disk Space" "$restrictedsoftwareXML"
+
+
+}
+
+fn_create_staticGroup_for_Disk_Space () {
+	StaticGroupXMLForDiskSpace="<computer_group>
+  <name>User Needs Help Clearing Disk Space</name>
+  <is_smart>false</is_smart>
+  <site>
+    <id>-1</id>
+    <name>None</name>
+  </site>
+</computer_group>"
+
+	FNput_postXML "computergroups" "User Needs Help Clearing Disk Space" "$StaticGroupXMLForDiskSpace"
+}
+
+fn_create_MonititoringSmartGroup_for_Disk_Space () {
+	SmartGroupXMLForDiskSpace="<computer_group>
+  <name>Monitoring - UEX - Help User Clearing Disk Space</name>
+  <is_smart>true</is_smart>
+  <site>
+    <id>-1</id>
+    <name>None</name>
+  </site>
+  <criteria>
+    <size>1</size>
+    <criterion>
+      <name>Computer Group</name>
+      <priority>0</priority>
+      <and_or>and</and_or>
+      <search_type>member of</search_type>
+      <value>User Needs Help Clearing Disk Space</value>
+      <opening_paren>false</opening_paren>
+      <closing_paren>false</closing_paren>
+    </criterion>
+  </criteria>
+</computer_group>"
+
+	FNput_postXML "computergroups" "Monitoring - UEX - Help User Clearing Disk Space" "$SmartGroupXMLForDiskSpace"
+}
+
+fn_openMonitoringSmartGroup () {
+	FNgetID "computergroups" "Monitoring - UEX - Help User Clearing Disk Space"
+	MonitoringGroupID="$retreivedID"
+	sudo -u "$loggedInUser" -H open "$jss_url/smartComputerGroups.html?id=$MonitoringGroupID&o=u"
+}
+
 ##########################################################################################
 # 								Script Starts Here										 #
 ##########################################################################################
@@ -377,6 +467,20 @@ if [[ "$helpTicketsEnabledViaAppRestriction" = true ]] || [[ "$helpTicketsEnable
 		exit 1
 	fi
 fi
+
+if [[ "$helpTicketsEnabledViaAppRestriction" = true ]]; then
+	#statements
+	fn_CreateAppRestrictionPolicy
+fi
+
+
+if [[ "$helpTicketsEnabledViaGeneralStaticGroup" = true ]]; then
+	#statements
+	fn_create_staticGroup_for_Disk_Space
+	fn_create_MonititoringSmartGroup_for_Disk_Space
+	# fn_openMonitoringSmartGroup
+fi
+
 
 # create category
 	FNcreateCategory "$UEXCategoryName"
@@ -470,6 +574,15 @@ fn_createTriggerPolicy "00-uexdeferralservice-jss - Checkin and Logout" "uexdefe
 
 # create UEX resources policy
 fn_createTriggerPolicy4Pkg "00-uexresources-jss - Trigger" "${packages[0]}" "uexresources" "<all_computers>true</all_computers>"
+
+if [[ "$helpTicketsEnabledViaGeneralStaticGroup" = true ]]; then
+	echo "Now Opening the Monitoring Smart Group"
+	echo "Make sure the Notification Setting is on"
+	sleep 3
+	fn_openMonitoringSmartGroup
+fi
+
+echo "The world is now your burrito!"
 
 
 ##########################################################################################
