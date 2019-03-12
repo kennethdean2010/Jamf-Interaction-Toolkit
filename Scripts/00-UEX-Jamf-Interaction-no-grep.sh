@@ -1,9 +1,13 @@
-#!/bin/sh
+#!/bin/bash
+
+# used for major debgugging
+# set -x
+
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
 loggedInUserHome=`dscl . read /Users/$loggedInUser NFSHomeDirectory | awk '{ print $2 }'`
 
 ##########################################################################################
-##								Paramaters for Branding									##
+##								Paramaters for Customization 							##
 ##########################################################################################
 
 title="Your IT Department"
@@ -12,19 +16,50 @@ title="Your IT Department"
 # or you can customize this with an image you've included in UEX resources or is already local on the computer
 customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIcon.icns"
 
-# if you you jamf Pro 10 to brand the image for you self sevice icon will be here
+# if you you jamf Pro 10 to brand the image with your self sevice icon will be here
 # or you can customize this with an image you've included in UEX resources or is already local on the computer
 SelfServiceIcon="$loggedInUserHome/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
 
+# if you want to customize the icon users see when they have insufficeien sapce you can specif the path
+# if you include it in your UEX resources it will install there 
 diskicon="/System/Library/Extensions/IOStorageFamily.kext/Contents/Resources/Internal.icns"
 
+
 ServiceDeskName="IT Support"
+
+# This enables the interaction for Help Disk Tickets
+# by default it is disabled. For more info on how to use this check the wiki in the Help Desk Ticket Section
+helpTicketsEnabled=false
+helpTicketsEnabledViaAppRestriction=false
+helpTicketsEnabledViaTrigger=false
+helpTicketsEnabledViaFunction=false
+restrictedAppName="/Library/Application Support/JAMF/UEX/resources/User Needs Helps Clearing Space.app"
+
+# Change this to your own trigger if you want to use a custom policy to notify you
+# NOTE if you make it blank then it assumes you're creating a policy for each UEX policy using  
+# the below naming convention
+# UEXhelpticketTrigger="$UEXpolicyTrigger""_helpticket"
+UEXhelpticketTrigger="disk_space_help_ticket"
+
+
+##########################################################################################
+##						Create help Desk Ticket Via Function 							##
+##########################################################################################
+# feel free to do what ever the heck you want here.
+# if you have API to create ticket with your Incident Managment System
+# GO NUTS
+fn_create_help_desk_ticket () {
+
+	sleep 1
+
+}
 
 ##########################################################################################
 ##########################################################################################
 ##							DO NOT MAKE ANY CHANGES BELOW								##
 ##########################################################################################
 ##########################################################################################
+jhPath="/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper"
 # 
 # User experience Post installation script to be bundled with PKG.
 # 
@@ -104,15 +139,66 @@ customMessage=${11}
 
 
 # fordebugging
-# NameConsolidated="Apple;Adobe Creative Apps;1.0;600"
-# checks="block restart update debug helpticket"
-# apps="Adobe Illustrator CC 2017.app;Adobe Photoshop CC 2017.app;Adobe IndesignCC  2017.app;Adobe BridgeCC  2017.app;Adobe Media Encoder CC 2017.app;Adobe Acrobat.app;ExtendScript Toolkit.app;Adobe Extension Manager CC.app"
-# installDuration=60
-# maxdeferConsolidated="82;0"
-# packages=
-# triggers=None
-# customMessage=""
-# selfservicePackage=true
+NameConsolidated="Big Apps Inc;Big Kahuna;1.0;1000"
+checks=`echo "debugx compliance quit trigger" | tr '[:upper:]' '[:lower:]'`
+apps="Safari.app"
+installDuration=60
+maxdeferConsolidated="0;1"
+packages=""
+triggers="bigkahuna;none"
+customMessage=""
+selfservicePackage=""
+debug="true"
+helpTicketsEnabled="true"
+helpTicketsEnabledViaAppRestriction="true"
+helpTicketsEnabledViaTrigger="false"
+helpTicketsEnabledViaFunction="false"
+
+##########################################################################################
+#								Package name Processing									 #
+##########################################################################################
+NameConsolidated4plist="$NameConsolidated"
+
+#### Caching detection ####
+waitingRoomDIR="/Library/Application Support/JAMF/Waiting Room/"
+
+pathToPackage="$waitingRoomDIR""$NameConsolidated4plist".pkg
+packageName="$(echo "$pathToPackage" | sed 's@.*/@@')"
+pathToFolder=`dirname "$pathToPackage"`
+
+##########################################################################################
+##									SETTING FOR DEBUG MODE								##
+##########################################################################################
+
+debugDIR="/Library/Application Support/JAMF/UEX/debug/"
+
+if [ -e "$debugDIR""$packageName" ] ; then 
+	debug=true
+fi
+
+if [ -z $debug ] && [[ "$checks" == *"debug"* ]] ; then 
+	echo debug on
+	debug=true
+else
+	echo debug off
+	debug=false
+fi
+
+
+if [ $debug = true ] ; then
+	"$jhPath" -windowType hud -windowPosition ll -title "$title" -description "UEX Script Running in debug mode." -button1 "OK" -timeout 30 > /dev/null 2>&1 &
+	
+		# for testing paths
+	if [[ $pathToPackage == "" ]] ; then
+		pathToPackage="/Users/ramirdai/Desktop/aG - Google - Google Chrome 47.0.2526.73 - OSX EN - SRXXXXX - 1.0.pkg"
+		packageName="$(echo "$pathToPackage" | sed 's@.*/@@')"
+		pathToFolder=`dirname "$pathToPackage"`
+	fi
+	
+	mkdir -p "$debugDIR" > /dev/null 2>&1
+	touch "$debugDIR""$packageName"
+fi
+
 
 ##########################################################################################
 ##										FUNCTIONS										##
@@ -128,12 +214,19 @@ sys.stdout.write(username + "\n");'
 }
 
 
+
 currentConsoleUserName=$( currentConsoleUser )
 
 sCocoaDialog_Pipe="/tmp/.cocoadialog_${0##*/}_${$}.pipe"
 bCocoaDialog_DisplayIsInitialized=0
 CocoaDialogProgressCounter=0
 
+fn_find_Clutter () {
+	sudo -u "$loggedInUser" -H open -a "/Applications/Utilities/System Information.app"
+	sleep 1
+	sudo -u "$loggedInUser" -H osascript -e 'tell application "System Events"' -e 'keystroke "u" using command down' -e 'end tell'
+	echo $? RESULT OF keystroke
+}
 
 fn_trigger ()
 {
@@ -399,7 +492,7 @@ fn_waitForApps2Quit () {
 		fi
 	done
 
-	if [[ "${appsRunning[@]}" != *".app"* ]]; then
+	if [[ "${appsRunning[@]}" != *".app"* ]] ; then
 		log4_JSS "User has closed all apps needed. Continuing $action"
 		echo 1 > $PostponeClickResultFile
 		apps2Relaunch=("${apps2ReOpen[@]}")
@@ -543,7 +636,7 @@ fi
 ##########################################################################################
 ##								Pre Processing of Variables								##
 ##########################################################################################
-NameConsolidated4plist="$NameConsolidated"
+
 
 IFS=";"
 set -- "$NameConsolidated" 
@@ -553,7 +646,12 @@ set -- "$triggers"
 declare -a triggers=($*)
 UEXpolicyTrigger=$(echo "${triggers[0]}" | tr '[:upper:]' '[:lower:]')
 UEXcachingTrigger="$UEXpolicyTrigger""_cache"
-UEXhelpticketTrigger="$UEXpolicyTrigger""_helpticket"
+
+if [[ -z "$UEXhelpticketTrigger" ]] ; then 
+#use for Specified help Tickets
+	UEXhelpticketTrigger="$UEXpolicyTrigger""_helpticket"
+fi
+
 unset triggers[0]
 
 unset IFS
@@ -578,21 +676,20 @@ else
 	maxdefer=$maxdeferConsolidated
 fi
 
+
+if [[ "$checks" == *"compliance"* ]] && [[ $helpTicketsEnabled = true ]] ; then
+	checks+=" helpticket"
+else
+	# Set the delay limit to 9999 if it's not a compliance policy to avoid odd actions
+	diskCheckDelaylimit=99999
+fi
+
 # set a default disk delay limit if they haven't been set
-if [[ "$checks" == *"critical"* ]] ;then
+if [[ "$checks" == *"critical"* ]] && [[ -z "$diskCheckDelaylimit" ]] ;then
 	diskCheckDelaylimit=1
-elif [[ -z $diskCheckDelaylimit ]] ;then
+elif [[ -z $diskCheckDelaylimit ]] && [[ -z "$diskCheckDelaylimit" ]] ;then
 	diskCheckDelaylimit=3
 fi
-##########################################################################################
-#								Package name Processing									 #
-##########################################################################################
-#### Caching detection ####
-waitingRoomDIR="/Library/Application Support/JAMF/Waiting Room/"
-
-pathToPackage="$waitingRoomDIR""$NameConsolidated4plist".pkg
-packageName="$(echo "$pathToPackage" | sed 's@.*/@@')"
-pathToFolder=`dirname "$pathToPackage"`
 
 ##########################################################################################
 ##								STATIC VARIABLES FOR CD DIALOGS							##
@@ -605,7 +702,6 @@ sCocoaDialog_App="$CocoaDialog"
 ##							STATIC VARIABLES FOR JH DIALOGS								##
 ##########################################################################################
 
-jhPath="/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper"
 heading="${AppVendor} ${AppName}"
 
 #if the icon file doesn't exist then set to a standard icon
@@ -850,7 +946,6 @@ unset IFS
 ##########################################################################################
 
 #set to true to skip some errors
-debug=false
 
 ##########################################################################################
 #								RESOURCE LOADER											 #
@@ -866,9 +961,22 @@ if [[ "$customLogo" != *"Jamf.app/Contents/Resources/AppIcon.icns"* ]]; then
 	customLogoCheck="$customLogo"
 fi
 
+# only check for the disk icon image if the use is using a custom one
+if [[ "$diskicon" != *"/System/Library/Extensions/IOStorageFamily.kext/Contents/Resources/Internal.icns"* ]]; then
+	diskiconCheck="$diskicon"
+fi
+
+# only check for the disk icon image if the use is using a custom one
+if [[ "$helpTicketsEnabledViaAppRestriction" = true ]]; then
+	restrictedAppNameCheck="$restrictedAppName"
+fi
+
+
 resources=(
 "$customLogoCheck"
 "$SelfServiceIconCheck"
+"$diskiconCheck"
+"$restrictedAppNameCheck"
 "/Library/Application Support/JAMF/UEX/resources/cocoaDialog.app"
 "/Library/Application Support/JAMF/UEX/resources/battery_white.png"
 "/Library/Application Support/JAMF/UEX/resources/PleaseWait.app"
@@ -896,6 +1004,11 @@ else
 	icon="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns"
 fi
 
+#in case the disk icon cannot be found then set the the default
+if [[ -e "$diskicon" ]]; then
+	diskicon="/System/Library/Extensions/IOStorageFamily.kext/Contents/Resources/Internal.icns"
+fi
+
 ##########################################################################################
 
 ##########################################################################################
@@ -915,35 +1028,6 @@ apps2block="$apps4plist"
 ##########################################################################################
 runDate=`date +%s`
 runDateFriendly=`date -r$runDate`
-
-
-##########################################################################################
-##									SETTING FOR DEBUG MODE								##
-##########################################################################################
-
-debugDIR="/Library/Application Support/JAMF/UEX/debug/"
-
-if [ -e "$debugDIR""$packageName" ] ; then 
-	debug=true
-fi
-
-if [[ "$checks" == *"debug"* ]] ; then 
-	debug=true
-fi
-
-if [ $debug = true ] ; then
-	"$jhPath" -windowType hud -windowPosition ll -title "$title" -description "UEX Script Running in debug mode." -button1 "OK" -timeout 30 > /dev/null 2>&1 &
-	
-		# for testing paths
-	if [[ $pathToPackage == "" ]] ; then
-		pathToPackage="/Users/ramirdai/Desktop/aG - Google - Google Chrome 47.0.2526.73 - OSX EN - SRXXXXX - 1.0.pkg"
-		packageName="$(echo "$pathToPackage" | sed 's@.*/@@')"
-		pathToFolder=`dirname "$pathToPackage"`
-	fi
-	
-	mkdir -p "$debugDIR" > /dev/null 2>&1
-	touch "$debugDIR""$packageName"
-fi
 ##########################################################################################
 
 ##########################################################################################
@@ -1099,6 +1183,15 @@ fi
 ##########################################################################################
 
 
+if [[ "$helpTicketsEnabled" == true ]] && [[ "$helpTicketsEnabledViaAppRestriction" != true ]] && [[ "$helpTicketsEnabledViaTrigger" != true ]] && [[ "$helpTicketsEnabledViaFunction" != true ]] ; then
+	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
+    --informative-text "Error: The variable 'helpTicketsEnabled' is not set correctly. 
+	
+You need to configure UEX with a method of how you would like to be notified of users needing a help ticket to clear space."
+	badvariable=true
+	logInUEX "ERROR: The variable 'AppVendor' is not set correctly."
+fi
+##########################################################################################
 if [[ -z $AppVendor ]] ; then
 	"$CocoaDialog" ok-msgbox --icon caution --float --no-cancel --title "$title" --text "Error" \
     --informative-text "Error: The variable 'AppVendor' is blank"
@@ -1250,7 +1343,6 @@ if [ $debug != true ] ; then
 		failedInstall=true
 	fi
 ##########################################################################################
-
 
 
 ##########################################################################################	
@@ -1613,6 +1705,8 @@ if [[ "$spaceRequired" ]] ; then
 		log4_JSS "Free in GB: $convertedfree"
 		log4_JSS "Required in GB: $spaceRequired"
 		log4_JSS "Space needed in GB: $remaining"
+	else
+		insufficientSpace=false
 	fi
 
 fi # is there is a space requirement
@@ -1886,6 +1980,7 @@ Otherwise you will be reminded about the $action automatically after your chosen
 ##								Insufficient Space Notification							##
 ##########################################################################################
 
+
 if [[ "$checks" == *"critical"* ]] ; then
 	spaceMsg+="This is a critical $action.
 "
@@ -1904,18 +1999,38 @@ elif [ $selfservicePackage != true ] && [[ "$checks" == *"helpticket"* ]] && [[ 
 	spaceMsg+="
 $ServiceDeskName has been notified that you have not cleared the data and will be contacting you. You'll also be reminded about this $action again tomorrow after 9am.
 "
-	triggerNgo "$UEXhelpticketTrigger"
+	
+	log4_JSS "User's exhausted time to clear space."
+	log4_JSS "Kicking off process for notifying $ServiceDeskName."
+	# used if theres a trigger to run to get tickets create
+	if [[ $helpTicketsEnabledViaTrigger = true ]] ; then
+		log4_JSS "Running Trigger $UEXhelpticketTrigger"
+		triggerNgo "$UEXhelpticketTrigger"
+	fi
+
+	#used if a custom function has been added to clear the disk space
+	if [[ $helpTicketsEnabledViaFunction = true ]] ; then
+		log4_JSS "Running special function to create ticket"
+		fn_create_help_desk_ticket
+	fi
+
+	# use to open the app that triggers the restricted software ... TeeHee, EVIL!
+	if [[ $helpTicketsEnabledViaAppRestriction = true ]] ; then
+		log4_JSS "Opening $restrictedAppName"
+		sudo -u "$loggedInUser" -H open -ja "$restrictedAppName"
+	fi
+
 fi # if not  a self sef service run and not crtical and with enough delays lefft for the disk reminder
 
-if [ $selfservicePackage != true ] && [[ $diskCheckDelayNumber -lt $diskCheckDelaylimit ]] ; then
+if [ $selfservicePackage != true ] && [[ $diskCheckDelayNumber -lt $diskCheckDelaylimit ]] && [[ "$checks" == *"helpticket"* ]] ; then
 
 if [[ $diskRemindersLeft -gt 1 ]]; then
 	spaceMsg+="
-You have $diskRemindersLeft more days left to clear up the space.
+You have $diskRemindersLeft more attempts left to clear up the space.
 "
 else # no posptonse aviailable
 	spaceMsg+="
-You have $diskRemindersLeft more day left to clear up the space.
+You have $diskRemindersLeft more attempt left to clear up the space.
 "
 fi
 
@@ -1928,10 +2043,7 @@ Please re-run the $action from $SelfServiceAppName when you've cleared up the sp
 fi 
 
 spaceMsg+="
-Use 'Find Clutter' to find large files or change your settings to save space.
-
-Please contact $ServiceDeskName if you need assistanance. 
-Thank you!"
+Use 'Find Clutter' to find large files or change your settings to save space."
 
 
 spaceMsg+="
@@ -2134,9 +2246,17 @@ while [ $reqlooper = 1 ] ; do
 
 		
 
-		"$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$spaceMsg" -button1 "OK" -button2 "Find Clutter" -icon "$diskicon" -timeout 600 -windowPosition center -timeout $jhTimeOut | grep -v 239
-		echo 86400 > $PostponeClickResultFile &
+		SpaceButton=$("$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$spaceMsg" -button1 "OK" -button2 "Find Clutter" -icon "$diskicon" -timeout 600 -windowPosition center -timeout $jhTimeOut | grep -v 239 )
+		
+		if [ $SpaceButton = "2" ] ; then
+			log4_JSS "User clicked the 'Find Clutter Button'"
+			fn_find_Clutter
+		fi
+		echo 86400 > $PostponeClickResultFile
 		PostponeClickResult=86400
+		diskCheckDelayNumber=$((diskCheckDelayNumber+1))
+
+
 		#Critical 
 		# if [[ "$checks" == *"critical"* ]] && [[ "$diskCheckDelayNumber" -gt 1 ]]; then
 		# 	log4_JSS "Critical Install: User"
@@ -2152,7 +2272,7 @@ while [ $reqlooper = 1 ] ; do
 
 	elif [ $silentPackage = true ] ; then
 		log4_JSS "Slient packge install deployment."
-		echo 0 > $PostponeClickResultFile &
+		echo 0 > $PostponeClickResultFile
 		PostponeClickResult=0
 		checks="${checks/quit/}"
 		checks="${checks/block/}"
@@ -2163,18 +2283,18 @@ while [ $reqlooper = 1 ] ; do
 	elif [[ $preApprovedInstall = true ]]; then
 		#statements
 		log4_JSS "User has a previous approval for a restart of logout."
-		echo 0 > $PostponeClickResultFile &
+		echo 0 > $PostponeClickResultFile
 		PostponeClickResult=0
 
 	elif [ -z "$apps2quit" ] && [ -z "$apps2ReOpen" ] && [[ "$checks" == *"quit"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] && [[ "$checks" != *"notify"* ]] ; then
 		log4_JSS "No apps need to be quit so $action can occur."
-		echo 0 > $PostponeClickResultFile &
+		echo 0 > $PostponeClickResultFile
 		PostponeClickResult=0
 		skipNotices=true
 		# Only run presetation dely if the user is alllowed to postpone and has postponse avalable
 		# this means that if they exhaust postpones its because they chose to and we only wiat a max of 3 hour for them to be try and delay after that presetaion delay is not possible
 	elif [[ "$presentationRunning" = true ]] && [[ $presentationDelayNumber -lt 3 ]] && [ $selfservicePackage != true ] && [[ "$checks" != *"critical"* ]] && [[ $maxdefer -ge 1 ]] && [[ $delayNumber -lt $maxdefer ]]; then
-		echo 3600 > $PostponeClickResultFile &
+		echo 3600 > $PostponeClickResultFile
 		PostponeClickResult=3600
 		presentationDelayNumber=$((presentationDelayNumber+1))
 		log4_JSS "Presentation running, delaying the install for 1 hour."
@@ -2184,7 +2304,7 @@ while [ $reqlooper = 1 ] ; do
 		skipOver=true
 		# if an presetation presentation is running and the max defer is 0 or critical then allow only one presentaion delay
 	elif [[ "$presentationRunning" = true ]] && [[ $presentationDelayNumber -lt 1 ]] && [ $selfservicePackage != true ] && [[ $maxdefer = 0 ]] ; then
-		echo 3600 > $PostponeClickResultFile &
+		echo 3600 > $PostponeClickResultFile
 		PostponeClickResult=3600
 		presentationDelayNumber=$((presentationDelayNumber+1))
 		log4_JSS "Presentation running, delaying the install for 1 hour."
@@ -2193,7 +2313,7 @@ while [ $reqlooper = 1 ] ; do
 		skipNotices=true
 		skipOver=true
 	elif [[ "$presentationRunning" = true ]] && [[ $presentationDelayNumber -lt 1 ]] && [ $selfservicePackage != true ] && [[ "$checks" == *"critical"* ]] ; then
-		echo 3600 > $PostponeClickResultFile &
+		echo 3600 > $PostponeClickResultFile
 		PostponeClickResult=3600
 		presentationDelayNumber=$((presentationDelayNumber+1))
 		log4_JSS "Presentation running, delaying the install for 1 hour."
@@ -2245,11 +2365,11 @@ while [ $reqlooper = 1 ] ; do
 	##						Detect a quit while the install window is open					##
 	##########################################################################################
 		
-		if [[ "$checks" == *"quit"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
+		if  [[ "$checks" == *"quit"* ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] && [[ $insufficientSpace != true ]] ; then
 			# Start the function to kill jamfHelper and start the install if apps are quit
 			fn_waitForApps2Quit
 
-		elif [[ "$checks" == *"block"* ]] && [[ "${apps2ReOpen[@]}" == *".app"*  ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] ; then
+		elif [[ "$checks" == *"block"* ]] && [[ "${apps2ReOpen[@]}" == *".app"*  ]] && [[ "$checks" != *"restart"* ]] && [[ "$checks" != *"logout"* ]] && [[ $insufficientSpace != true ]] ; then
 			# Start the function to kill jamfHelper and start the install if apps are quit
 			fn_waitForApps2Quit
 		fi
@@ -2264,7 +2384,7 @@ while [ $reqlooper = 1 ] ; do
 	if [ -z $PostponeClickResult ] ; then
 
 		# Check if the user has ignored the the install prompt and exhased all delays
-		if [ $inactivityDelay -ge 3 ] && [[ $delayNumber -ge $maxdefer ]] && [[ "$checks" == *"compliance"* ]] ; then 
+		if [ $inactivityDelay -ge 3 ] && [[ $delayNumber -ge $maxdefer ]] && [[ "$checks" == *"compliance"* ]] && [[ $insufficientSpace != true ]] ; then 
 			log4_JSS "User has exhausted delay options and ignored the prompt 3 times further."
 			log4_JSS "This is a compliance policy and will be forced to install."
 			forceInstall=true
@@ -2996,7 +3116,7 @@ EOT
 # 		status="$heading,
 # 		Currently installing..."
 # # 		"$jhPath" -icon "$icon" -windowType hud -windowPosition lr -startlaunchd -title "$title" -description "$status" > /dev/null 2>&1 &
-# 		echo '#!/bin/sh' > /tmp/jamfhelperwindow.sh
+# 		echo '#!/bin/bash' > /tmp/jamfhelperwindow.sh
 # 		echo '"'"$jhPath"'"' -icon '"'"$icon"'"' -windowType hud -windowPosition lr -startlaunchd -title '"'"$title"'"' -description '"'"$heading is currently installing..."'"' >> /tmp/jamfhelperwindow.sh
 # 		sh /tmp/jamfhelperwindow.sh &
 # 	fi

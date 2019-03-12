@@ -1,8 +1,15 @@
 #!/bin/bash
-
+# set -x
 ###################
 # Variables
 ###################
+
+# This enables the interaction for Help Disk Tickets
+# by default it is disabled. For more info on how to use this check the wiki in the Help Desk Ticket Section
+helpTicketsEnabledViaAppRestriction=false
+helpTicketsEnabledViaGeneralStaticGroup=false
+restrictedAppName="User Needs Helps Clearing Space.app"
+
 
 jss_url="https://cubandave.local:8443"
 jss_user="jssadmin"
@@ -12,7 +19,7 @@ jss_pass="jamf1234"
 UEXCategoryName="User Experience"
 
 packages=(
-"UEXresourcesInstaller-201901021850.pkg"
+"UEXresourcesInstaller-201903121652.pkg"
 )
 
 ##########################################################################################
@@ -210,6 +217,10 @@ FNput_postXML "policies" "$agentPolicyName" "$agentPolicyXML"
 
 }
 
+fn_checkForSMTPServer () {
+	echo $(/usr/bin/curl -s -k "${jss_url}/JSSResource/smtpserver" -u "${jss_user}:${jss_pass}" -H "Accept: application/xml" | xmllint --format - | grep -c "<enabled>true</enabled>")
+}
+
 fn_createTriggerPolicy () {
 	triggerPolicyName="$1"
 	policyTrigger2Run="$2"
@@ -359,6 +370,13 @@ fn_setScriptParameters () {
 # 								Script Starts Here										 #
 ##########################################################################################
 
+if [[ "$helpTicketsEnabledViaAppRestriction" = true ]] || [[ "$helpTicketsEnabledViaGeneralStaticGroup" = true ]] ;then
+	if [[ $(fn_checkForSMTPServer) -eq 0 ]] ; then
+		echo "no SMTP server configured." 
+		echo "Please check your Jamf Pro server or disbale helpTicketsEnabledViaAppRestriction or helpTicketsEnabledViaGeneralStaticGroup"
+		exit 1
+	fi
+fi
 
 # create category
 	FNcreateCategory "$UEXCategoryName"

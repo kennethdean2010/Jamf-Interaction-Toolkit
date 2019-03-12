@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 jamfBinary="/usr/local/jamf/bin/jamf"
 
