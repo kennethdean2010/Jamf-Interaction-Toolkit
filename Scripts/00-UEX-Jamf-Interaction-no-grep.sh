@@ -38,7 +38,7 @@ restrictedAppName="/Library/Application Support/JAMF/UEX/resources/User Needs He
 # Change this to your own trigger if you want to use a custom policy to notify you
 # NOTE if you make it blank then it assumes you're creating a policy for each UEX policy using  
 # the below naming convention
-# UEXhelpticketTrigger="$UEXpolicyTrigger""_helpticket"
+# EXAMPLE: "$UEXpolicyTrigger""_helpticket"
 UEXhelpticketTrigger="disk_space_help_ticket"
 ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
 
@@ -53,6 +53,8 @@ ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
 fn_create_help_desk_ticket () {
 
 	sleep 1
+	echo "I'm not doing anything yet...;-p. Plz update fn_create_help_desk_ticket"
+	echo "or turn off helpTicketsEnabledViaFunction"
 
 }
 
@@ -650,8 +652,13 @@ UEXpolicyTrigger=$(echo "${triggers[0]}" | tr '[:upper:]' '[:lower:]')
 UEXcachingTrigger="$UEXpolicyTrigger""_cache"
 
 if [[ -z "$UEXhelpticketTrigger" ]] ; then 
-#use for Specified help Tickets
+	#use for Specified help Tickets
 	UEXhelpticketTrigger="$UEXpolicyTrigger""_helpticket"
+fi
+
+if [[ -z "$ClearHelpTicketRequirementTrigger" ]] ; then 
+	#use for Specified help Tickets
+	ClearHelpTicketRequirementTrigger="$UEXpolicyTrigger""_clear_helpticket"
 fi
 
 unset triggers[0]
@@ -2763,6 +2770,12 @@ fi # if there is a postponement
 if [[ $PostponeClickResult == "" ]] ; then
 
 	log4_JSS "UEX actions for $actionation process starting."
+
+	# 
+	if [[ "$spaceRequired" ]] && [[ "$checks" == *"compliance"* ]] && [[ "$helpTicketsEnabledViaTrigger" = true ]] ; then
+		log4_JSS "User has enough space for installation"
+		triggerNgo "$ClearHelpTicketRequirementTrigger"
+	fi
 
 # Do not update invtory update if UEX is only being used for notificaitons
 # if its an innstallation polciy then update invetory at the end
