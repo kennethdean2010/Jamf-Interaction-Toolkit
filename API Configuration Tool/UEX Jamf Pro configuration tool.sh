@@ -14,13 +14,13 @@ jss_pass="jamf1234"
 UEXCategoryName="User Experience"
 
 packages=(
-"UEXresourcesInstaller-201903121652.pkg"
+"UEXresourcesInstaller-201903130155.pkg"
 )
 
 # This enables the interaction for Help Disk Tickets
 # by default it is disabled. For more info on how to use this check the wiki in the Help Desk Ticket Section
 helpTicketsEnabledViaAppRestriction=false
-helpTicketsEnabledViaGeneralStaticGroup=true
+helpTicketsEnabledViaGeneralStaticGroup=false
 restrictedAppName="User Needs Helps Clearing Space.app"
 
 # if you use the general method of addind and removing the requiremnt for help desk support to clear

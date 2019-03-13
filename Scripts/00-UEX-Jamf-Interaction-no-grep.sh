@@ -141,20 +141,20 @@ customMessage=${11}
 
 
 # fordebugging
-NameConsolidated="Big Apps Inc;Big Kahuna;1.0;1000"
-checks=`echo "debugx compliance quit trigger" | tr '[:upper:]' '[:lower:]'`
-apps="Safari.app"
-installDuration=60
-maxdeferConsolidated="0;1"
-packages=""
-triggers="bigkahuna;none"
-customMessage=""
-selfservicePackage=""
-debug="true"
-helpTicketsEnabled="true"
-helpTicketsEnabledViaAppRestriction="true"
-helpTicketsEnabledViaTrigger="false"
-helpTicketsEnabledViaFunction="false"
+# NameConsolidated="Big Apps Inc;Big Kahuna;1.0;1000"
+# checks=`echo "debugx compliance quit trigger" | tr '[:upper:]' '[:lower:]'`
+# apps="Safari.app"
+# installDuration=60
+# maxdeferConsolidated="0;1"
+# packages=""
+# triggers="bigkahuna;none"
+# customMessage=""
+# selfservicePackage=""
+# debug="true"
+# helpTicketsEnabled="true"
+# helpTicketsEnabledViaAppRestriction="true"
+# helpTicketsEnabledViaTrigger="false"
+# helpTicketsEnabledViaFunction="false"
 
 ##########################################################################################
 #								Package name Processing									 #
