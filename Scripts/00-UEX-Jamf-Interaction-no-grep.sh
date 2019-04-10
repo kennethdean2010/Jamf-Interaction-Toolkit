@@ -153,20 +153,20 @@ customMessage=${11}
 
 
 # fordebugging
-NameConsolidated="Big Apps Inc;macOS Mojave;1.0"
-checks=`echo "macosupgrade compliance ssavail" | tr '[:upper:]' '[:lower:]'`
-apps=""
-installDuration=90
-maxdeferConsolidated="7;0"
-packages=""
-triggers="bigkahuna;none"
-customMessage="You will love the new dark mode!"
-selfservicePackage=""
-debug="true"
-helpTicketsEnabled="true"
-helpTicketsEnabledViaAppRestriction="true"
-helpTicketsEnabledViaTrigger="false"
-helpTicketsEnabledViaFunction="false"
+# NameConsolidated="Big Apps Inc;macOS Mojave;1.0"
+# checks=`echo "macosupgrade compliance ssavail" | tr '[:upper:]' '[:lower:]'`
+# apps=""
+# installDuration=90
+# maxdeferConsolidated="7;0"
+# packages=""
+# triggers="bigkahuna;none"
+# customMessage="You will love the new dark mode!"
+# selfservicePackage=""
+# debug="true"
+# helpTicketsEnabled="true"
+# helpTicketsEnabledViaAppRestriction="true"
+# helpTicketsEnabledViaTrigger="false"
+# helpTicketsEnabledViaFunction="false"
 
 ##########################################################################################
 #								Package name Processing									 #
