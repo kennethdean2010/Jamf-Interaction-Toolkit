@@ -16,6 +16,9 @@ customLogo="/Library/Application Support/JAMF/Jamf.app/Contents/Resources/AppIco
 # or you can customize this with an image you've included in UEX resources or is already local on the computer
 SelfServiceIcon="$loggedInUserHome/Library/Application Support/com.jamfsoftware.selfservice.mac/Documents/Images/brandingimage.png"
 
+
+enable_filevault_reboot=false
+
 ##########################################################################################
 ##########################################################################################
 ##							DO NOT MAKE ANY CHANGES BELOW								##
@@ -205,7 +208,7 @@ if [[ $otherJamfprocess == "" ]] ; then
 		done
 
 		# only if some one is logged in and can unlock the disk and it's supported
-		if [[ $loggedInUser ]] && [[ "$userCanUnLockDisk" = true ]] && [[ "$fvAutrestartSupported" = true ]] ; then
+		if [[ $loggedInUser ]] && [[ "$userCanUnLockDisk" = true ]] && [[ "$fvAutrestartSupported" = true ]] && [[ "$enable_filevault_reboot" = true ]] ; then
 	
 			fvUnlockHeading="FileVault Authorized Restart"
 			fvUnlockNotice='In order for the changes to complete you must restart your computer. Please save your work. 

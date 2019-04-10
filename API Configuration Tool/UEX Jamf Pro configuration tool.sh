@@ -56,6 +56,11 @@ triggerscripts=(
 	"00-UEX-Update-via-Self-Service"
 )
 
+apiScripts=(
+	"00-API-Add-Current-Computer-to-Static-Group.sh"
+	"00-API-Remove-Current-Computer-to-Static-Group.sh"
+)
+
 UEXInteractionScripts=(
 "00-UEX-Jamf-Interaction-no-grep"
 )

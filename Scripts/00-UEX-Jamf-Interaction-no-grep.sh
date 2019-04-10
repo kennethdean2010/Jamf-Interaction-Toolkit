@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# used for major debgugging
+# used for major debugging
 # set -x
 
 loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v root`
@@ -99,7 +99,7 @@ NameConsolidated=$4
 # can also be (block restart) or (block logout)
 # NEW individual checks (macosupgrade) (saveallwork)
 # Coming soon (lock) (loginwindow)
-# aditional options (power)
+# aditional options (power) (nopreclose)
 # if the install is critical add "critical"
 # if the app is available in Self Service add "ssavail"
 # LABEL: Checks
@@ -143,20 +143,20 @@ customMessage=${11}
 
 
 # fordebugging
-# NameConsolidated="Big Apps Inc;Big Kahuna;1.0;1000"
-# checks=`echo "debugx compliance quit trigger" | tr '[:upper:]' '[:lower:]'`
-# apps="Safari.app"
-# installDuration=60
-# maxdeferConsolidated="0;1"
-# packages=""
-# triggers="bigkahuna;none"
-# customMessage=""
-# selfservicePackage=""
-# debug="true"
-# helpTicketsEnabled="true"
-# helpTicketsEnabledViaAppRestriction="true"
-# helpTicketsEnabledViaTrigger="false"
-# helpTicketsEnabledViaFunction="false"
+NameConsolidated="Big Apps Inc;macOS Mojave;1.0"
+checks=`echo "macosupgrade compliance ssavail" | tr '[:upper:]' '[:lower:]'`
+apps=""
+installDuration=90
+maxdeferConsolidated="7;0"
+packages=""
+triggers="bigkahuna;none"
+customMessage="You will love the new dark mode!"
+selfservicePackage=""
+debug="true"
+helpTicketsEnabled="true"
+helpTicketsEnabledViaAppRestriction="true"
+helpTicketsEnabledViaTrigger="false"
+helpTicketsEnabledViaFunction="false"
 
 ##########################################################################################
 #								Package name Processing									 #
@@ -2045,9 +2045,9 @@ fi
 
 fi
 
-if [ $selfservicePackage = true ] ; then
+if [ $selfservicePackage = true ] || [[ "$checks" == *"ssavail"* ]] ; then
 	spaceMsg+="
-Please re-run the $action from $SelfServiceAppName when you've cleared up the space.
+You can also run the $action from $SelfServiceAppName when you've cleared up the space.
 "
 fi 
 
@@ -2515,7 +2515,7 @@ Current work may be lost if you do not save before proceeding."
 
 
 			fn_generatateApps2quit
-
+			# Safe quit options
 			if [[ $apps2kill != "" ]] && [[ "$checks" != *"nopreclose"* ]] ; then
 
 				# if the app to re launc is not blank it means the apps wer quit manuaully when the install window was up
@@ -2527,14 +2527,15 @@ Current work may be lost if you do not save before proceeding."
 					appid=`ps aux | grep "$app"/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
 					# Processing application $app
 						if  [[ $appid != "" ]] ; then
-							for id in $appid; do
+							# testing #36 for multiple quitting
+							# for id in $appid; do
 								# Application  $app is still running.
 								# Killing $app. pid is $id 
 								apps2Relaunch+=($app)
 								log4_JSS "Safe quitting $app"
 								sudo -u "$loggedInUser" -H osascript -e "activate app \"$app\""
 								sudo -u "$loggedInUser" -H osascript -e "quit app \"$app\""
-							done 
+							# done 
 						fi
 				done
 				unset IFS
@@ -2905,11 +2906,15 @@ fi # no on logged in
 				appid=`ps aux | grep "$app"/Contents/MacOS/ | grep -v grep | grep -v jamf | awk {'print $2'}`
 				# Processing application $app
 					if  [[ $appid != "" ]] ; then
+						
+						#add to the relaunch list once
+						#testing for #36
+						apps2Relaunch+=($app)
+						
 						for id in $appid; do
 							# Application  $app is still running.
 							# Killing $app. pid is $id 
 							log4_JSS "$app is still running. Killing process id $id."
-							apps2Relaunch+=($app)
 							# log4_JSS "Re-opening $app"
 							# osascript -e "activate app \"$app\""
 							# osascript -e "quit app \"$app\""
@@ -2939,11 +2944,15 @@ fi # no on logged in
 			appid=`ps aux | grep "$app"/Contents/MacOS/ | grep -v grep | grep -v jamfgg | awk {'print $2'}`
 			# Processing application $app
 				if  [[ $appid != "" ]] ; then
+					
+					#add to the relaunch list once
+					#testing for #36
+					apps2Relaunch+=($app)
+
 					for id in $appid; do
 						# Application  $app is still running.
 						# Killing $app. pid is $id 
 						log4_JSS "$app is still running. Quitting app."
-						apps2Relaunch+=($app)
 						kill $id
 						processstatus=`ps -p $id`
 							if [[ "$processstatus" == *"$id"* ]]; then
