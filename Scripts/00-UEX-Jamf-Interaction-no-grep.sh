@@ -7,7 +7,7 @@ loggedInUser=`/bin/ls -l /dev/console | /usr/bin/awk '{ print $3 }' | grep -v ro
 loggedInUserHome=`dscl . read /Users/$loggedInUser NFSHomeDirectory | awk '{ print $2 }'`
 
 ##########################################################################################
-##								Paramaters for Customization 							##
+##								Jamf Interaction Configuration 							##
 ##########################################################################################
 
 title="Your IT Department"
@@ -41,6 +41,16 @@ restrictedAppName="/Library/Application Support/JAMF/UEX/resources/User Needs He
 # EXAMPLE: "$UEXpolicyTrigger""_helpticket"
 UEXhelpticketTrigger="disk_space_help_ticket"
 ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
+
+
+# NEW SOFTWARE UPDTATE OPTIONS
+# use this to run a trigger to set your software update server via a policy 
+# Highly Recomend using Configuration Profiles though.
+# For a hand script to use API to calculate the SUS server check out:
+# https://github.com/patchoo/patchoo/blob/master/extras/asucatalogset.sh
+susSetByTrigger=false
+susSettingTriggerName="set_sus_server"
+
 
 
 
@@ -818,7 +828,11 @@ checking for updates..."
 	"$CocoaDialog" bubble --title "$title" --text "$status" --icon-file "$icon"	
 fi # selfservice package
 
-	fn_trigger "set_sus_server"
+	if [ $susSetByTrigger = true ] ;then
+		fn_trigger "$susSettingTriggerName"
+	fi #
+
+
 	softwareupdate -l > $swulog
 
 	updates=`cat $swulog`
