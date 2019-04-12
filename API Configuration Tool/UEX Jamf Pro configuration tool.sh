@@ -22,10 +22,12 @@ packages=(
 helpTicketsEnabledViaAppRestriction=false
 helpTicketsEnabledViaGeneralStaticGroup=false
 restrictedAppName="User Needs Helps Clearing Space.app"
+staticGroupName="User Needs Help Clearing Disk Space"
+
 
 # if you use the general method of addind and removing the requiremnt for help desk support to clear
 # disk space then you should leave these as is
-UEXhelpticketTrigger="disk_space_help_ticket"
+UEXhelpticketTrigger="add_to_group_for_disk_space_help_ticket"
 ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
 
 
@@ -34,18 +36,20 @@ ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
 ##########################################################################################
 
 scripts=(
-"00-PleaseWaitUpdater-jss"
-"00-UEX-Deploy-via-Trigger"
-"00-UEX-Install-Silent-via-trigger"
-"00-UEX-Install-via-Self-Service"
-"00-UEX-Jamf-Interaction-no-grep"
-"00-UEX-Uninstall-via-Self-Service"
-"00-UEX-Update-via-Self-Service"
-"00-uexblockagent-jss"
-"00-uexdeferralservice-jss"
-"00-uexlogoutagent-jss"
-"00-uexrestartagent-jss"
-"00-uex_inventory_update_agent-jss"
+	"00-PleaseWaitUpdater-jss"
+	"00-UEX-Deploy-via-Trigger"
+	"00-UEX-Install-Silent-via-trigger"
+	"00-UEX-Install-via-Self-Service"
+	"00-UEX-Jamf-Interaction-no-grep"
+	"00-UEX-Uninstall-via-Self-Service"
+	"00-UEX-Update-via-Self-Service"
+	"00-uexblockagent-jss"
+	"00-uexdeferralservice-jss"
+	"00-uexlogoutagent-jss"
+	"00-uexrestartagent-jss"
+	"00-uex_inventory_update_agent-jss"
+	"00-API-Add-Current-Computer-to-Static-Group.sh"
+	"00-API-Remove-Current-Computer-to-Static-Group.sh"
 )
 
 triggerscripts=(
@@ -162,6 +166,17 @@ FNgetID ()
 
     }
 
+FNgetXML () 
+	{
+		local resourceName="$1"
+		local IDtoRead="$2"
+
+		# retreivedXMLofResource=`/usr/bin/curl -s -k "${jss_url}/JSSResource/$1" -u "${jss_user}:${jss_pass}" -H "Accept: application/xml"`
+		# retreivedID=`/usr/bin/curl -s -k "${jss_url}/JSSResource/$1" -u "${jss_user}:${jss_pass}" -H "Accept: application/xml" | xmllint --format - | grep -B 1 "$name" | /usr/bin/awk -F'<id>|</id>' '{print $2}' | sed '/^\s*$/d'`
+		retreivedXML=`/usr/bin/curl -s -k "${jss_url}/JSSResource/$resourceName/id/$IDtoRead" -u "${jss_user}:${jss_pass}" -H "Accept: application/xml"`
+
+    }
+
 FNcreateCategory () {
 	CategoryName="$1"
 	newCategoryNameXML="<category><name>$CategoryName</name><priority>9</priority></category>"
@@ -171,38 +186,17 @@ FNcreateCategory () {
 }
 
 fn_createAgentPolicy () {
-	scriptID=""
-	policyScript="$1"
-	policyTrigger="$2"
-	agentPolicyName=`echo "${policyScript//.sh}"`
-	agentPolicyName+=" - Trigger"
+	local scriptID=""
+	local policyScript="$1"
+	local policyTrigger="$2"
+	local agentPolicyName=`echo "${policyScript//.sh}"`
+	local agentPolicyName+=" - Trigger"
 	echo "$agentPolicyName"
 
 	FNgetID scripts "$policyScript"
-	scriptID="$retreivedID"
+	local scriptID="$retreivedID"
 
-	agentPolicyXML="<policy>
-	  <general>
-	    <name>$agentPolicyName/name>
-	    <enabled>true</enabled>
-	    <trigger>EVENT</trigger>
-	    <trigger_other>$policyTrigger</trigger_other>
-	    <category>
-	      <id>$UEXCategoryID</id>
-	    </category>
-	  </general>
-	  <scope>
-	    <all_computers>true</all_computers>
-	  </scope>
-	  <scripts>
-	    <size>1</size>
-	    <script>
-	      <id>$scriptID</id>
-	    </script>
-	  </scripts>
-	</policy>"
-
-agentPolicyXML="<policy>
+	local agentPolicyXML="<policy>
   <general>
     <name>$agentPolicyName</name>
     <enabled>true</enabled>
@@ -229,18 +223,70 @@ FNput_postXML "policies" "$agentPolicyName" "$agentPolicyXML"
 
 }
 
+fn_createAPIPolicy () {
+	local scriptID=""
+	local policyScript="$1"
+	local policyTrigger="$2"
+	local APIPolicyName=`echo "${policyScript//.sh}"`
+	local APIPolicyName+=" - Disk Space - Trigger"
+	local parameter4="$3"
+	local parameter5="$4"
+	echo "$APIPolicyName"
+
+	FNgetID scripts "$policyScript"
+	local scriptID="$retreivedID"
+
+	FNgetID "policies" "$APIPolicyName"
+	if [ $retreivedID ] ; then
+		FNgetXML "policies" "$retreivedID"
+
+		parameter6=`echo "$retreivedXML" | xmllint --xpath "/policy/scripts/script/parameter6/text()" -`
+		parameter7=`echo "$retreivedXML" | xmllint --xpath "/policy/scripts/script/parameter7/text()" -`
+	fi
+
+	local APIPolicyXML="<policy>
+  <general>
+    <name>$APIPolicyName</name>
+    <enabled>true</enabled>
+    <trigger>EVENT</trigger>
+    <trigger_other>$policyTrigger</trigger_other>
+    <frequency>Ongoing</frequency>
+    <category>
+      <id>$UEXCategoryID</id>
+    </category>
+  </general>
+  <scope>
+    <all_computers>true</all_computers>
+  </scope>
+  <scripts>
+    <size>1</size>
+    <script>
+      <id>$scriptID</id>
+      <priority>After</priority>
+      <parameter4>$parameter4</parameter4>
+      <parameter5>$parameter5</parameter5>
+      <parameter6>$parameter6</parameter6>
+      <parameter7>$parameter7</parameter7>
+    </script>
+  </scripts>
+</policy>"
+
+FNput_postXML "policies" "$APIPolicyName" "$APIPolicyXML"
+
+}
+
 fn_checkForSMTPServer () {
 	echo $(/usr/bin/curl -s -k "${jss_url}/JSSResource/smtpserver" -u "${jss_user}:${jss_pass}" -H "Accept: application/xml" | xmllint --format - | grep -c "<enabled>true</enabled>")
 }
 
 fn_createTriggerPolicy () {
-	triggerPolicyName="$1"
-	policyTrigger2Run="$2"
+	local triggerPolicyName="$1"
+	local policyTrigger2Run="$2"
 	FNgetID "scripts" "00-UEX-Deploy-via-Trigger"
-	triggerScripID="$retreivedID"
-	triggerPolicyScopeXML="$3"
+	local triggerScripID="$retreivedID"
+	local triggerPolicyScopeXML="$3"
 
-	triggerPolicyXML="<policy>
+	local triggerPolicyXML="<policy>
   <general>
     <name>$triggerPolicyName</name>
     <enabled>true</enabled>
@@ -270,14 +316,14 @@ FNput_postXML "policies" "$triggerPolicyName" "$triggerPolicyXML"
 
 
 fn_createTriggerPolicy4Pkg () {
-	packagePolicyName="$1"
-	pkg2Install="$2"
-	customEventName="$3"
+	local packagePolicyName="$1"
+	local pkg2Install="$2"
+	local customEventName="$3"
 	FNgetID "packages" "$pkg2Install"
-	policypackageID="$retreivedID"
-	packagePolicyScopeXML="$4"
+	local policypackageID="$retreivedID"
+	local packagePolicyScopeXML="$4"
 
-	packagePolicyXML="<policy>
+	local packagePolicyXML="<policy>
   <general>
     <name>$packagePolicyName</name>
     <enabled>true</enabled>
@@ -306,11 +352,11 @@ FNput_postXML "policies" "$packagePolicyName" "$packagePolicyXML"
 }
 
 fn_createSmartGroup () {
-	smartGroupName="$1"
-	smartGroupCriteriaSize="$2"
-	smartGroupCriterionXML="$3"
+	local smartGroupName="$1"
+	local smartGroupCriteriaSize="$2"
+	local smartGroupCriterionXML="$3"
 
-	SmartGroupXML="<computer_group>
+	local SmartGroupXML="<computer_group>
 	  <name>$smartGroupName</name>
 	  <is_smart>true</is_smart>
 	  <site>
@@ -328,12 +374,12 @@ fn_createSmartGroup () {
 
 
 fn_updateCategory () {
-	resourceID="$1"
-	xmlStart="$2"
-	categoryName="$3"
-	JSSResourceName="$4"
+	local resourceID="$1"
+	local xmlStart="$2"
+	local categoryName="$3"
+	local JSSResourceName="$4"
 
-	categoryXML="<$xmlStart>
+	local categoryXML="<$xmlStart>
 		<category>$categoryName</category>
 		</$xmlStart>"
 
@@ -341,27 +387,17 @@ fn_updateCategory () {
 }
 
 fn_setScriptParameters () {
-	scriptName=""
-	parameter4=""
-	parameter5=""
-	parameter6=""
-	parameter7=""
-	parameter8=""
-	parameter9=""
-	parameter10=""
-	parameter11=""
+	local scriptName="$1"
+	local parameter4="$2"
+	local parameter5="$3"
+	local parameter6="$4"
+	local parameter7="$5"
+	local parameter8="$6"
+	local parameter9="$7"
+	local parameter10="$8"
+	local parameter11="$9"
 
-	scriptName="$1"
-	parameter4="$2"
-	parameter5="$3"
-	parameter6="$4"
-	parameter7="$5"
-	parameter8="$6"
-	parameter9="$7"
-	parameter10="$8"
-	parameter11="$9"
-
-	scriptParameterXML="<script>
+	local scriptParameterXML="<script>
 	<parameters>
 <parameter4>$parameter4</parameter4>
 <parameter5>$parameter5</parameter5>
@@ -384,7 +420,7 @@ fn_CreateAppRestrictionPolicy () {
 
 restrictedsoftwareXML="<restricted_software>
   <general>
-    <name>User Needs Help Clearing Disk Space</name>
+    <name>$staticGroupName</name>
     <process_name>$restrictedAppName</process_name>
     <match_exact_process_name>true</match_exact_process_name>
     <send_notification>true</send_notification>
@@ -412,14 +448,14 @@ restrictedsoftwareXML="<restricted_software>
   </scope>
 </restricted_software>"
 
-	FNput_postXML restrictedsoftware "User Needs Help Clearing Disk Space" "$restrictedsoftwareXML"
+	FNput_postXML restrictedsoftware "$staticGroupName" "$restrictedsoftwareXML"
 
 
 }
 
 fn_create_staticGroup_for_Disk_Space () {
 	StaticGroupXMLForDiskSpace="<computer_group>
-  <name>User Needs Help Clearing Disk Space</name>
+  <name>$staticGroupName</name>
   <is_smart>false</is_smart>
   <site>
     <id>-1</id>
@@ -427,7 +463,7 @@ fn_create_staticGroup_for_Disk_Space () {
   </site>
 </computer_group>"
 
-	FNput_postXML "computergroups" "User Needs Help Clearing Disk Space" "$StaticGroupXMLForDiskSpace"
+	FNput_postXML "computergroups" "$staticGroupName" "$StaticGroupXMLForDiskSpace"
 }
 
 fn_create_MonititoringSmartGroup_for_Disk_Space () {
@@ -445,7 +481,7 @@ fn_create_MonititoringSmartGroup_for_Disk_Space () {
       <priority>0</priority>
       <and_or>and</and_or>
       <search_type>member of</search_type>
-      <value>User Needs Help Clearing Disk Space</value>
+      <value>$staticGroupName</value>
       <opening_paren>false</opening_paren>
       <closing_paren>false</closing_paren>
     </criterion>
@@ -460,10 +496,22 @@ fn_openMonitoringSmartGroup () {
 	MonitoringGroupID="$retreivedID"
 	sudo -u "$loggedInUser" -H open "$jss_url/smartComputerGroups.html?id=$MonitoringGroupID&o=u"
 }
+fn_openAPIPolicies () {
+	FNgetID "policies" "00-API-Add-Current-Computer-to-Static-Group - Disk Space - Trigger"
+	sudo -u "$loggedInUser" -H open "$jss_url/policies.html?id=$retreivedID&o=u"
+
+	FNgetID "policies" "00-API-Remove-Current-Computer-to-Static-Group - Disk Space - Trigger"
+	sudo -u "$loggedInUser" -H open "$jss_url/policies.html?id=$retreivedID&o=u"
+}
 
 ##########################################################################################
 # 								Script Starts Here										 #
 ##########################################################################################
+# create category
+	FNcreateCategory "$UEXCategoryName"
+	UEXCategoryID="$retreivedID"
+	echo $UEXCategoryID
+
 
 if [[ "$helpTicketsEnabledViaAppRestriction" = true ]] || [[ "$helpTicketsEnabledViaGeneralStaticGroup" = true ]] ;then
 	if [[ $(fn_checkForSMTPServer) -eq 0 ]] ; then
@@ -483,14 +531,16 @@ if [[ "$helpTicketsEnabledViaGeneralStaticGroup" = true ]]; then
 	#statements
 	fn_create_staticGroup_for_Disk_Space
 	fn_create_MonititoringSmartGroup_for_Disk_Space
-	# fn_openMonitoringSmartGroup
+	
+	for apiScript in "${apiScripts[@]}" ; do
+		fn_setScriptParameters "$apiScript" "Group Name" "JSS URL - No Trailing Slash" "JSS Username (encrypted)" "JSS Password (encrypted)"
+	done
+
+	fn_createAPIPolicy "00-API-Add-Current-Computer-to-Static-Group" "$UEXhelpticketTrigger" "$staticGroupName" "$jss_url"
+	fn_createAPIPolicy "00-API-Remove-Current-Computer-to-Static-Group" "$ClearHelpTicketRequirementTrigger" "$staticGroupName" "$jss_url"
+
 fi
 
-
-# create category
-	FNcreateCategory "$UEXCategoryName"
-	UEXCategoryID="$retreivedID"
-	echo $UEXCategoryID
 
 # check for all copmonents and update their category 
 	for script in "${scripts[@]}" ; do 
@@ -583,8 +633,11 @@ fn_createTriggerPolicy4Pkg "00-uexresources-jss - Trigger" "${packages[0]}" "uex
 if [[ "$helpTicketsEnabledViaGeneralStaticGroup" = true ]]; then
 	echo "Now Opening the Monitoring Smart Group"
 	echo "Make sure the Notification Setting is on"
+	echo "Also opening API scripts. Make sure to add the JSS User and Password"
 	sleep 3
 	fn_openMonitoringSmartGroup
+	fn_openAPIPolicies
+
 fi
 
 echo "The world is now your burrito!"

@@ -24,8 +24,9 @@ SelfServiceIcon="$loggedInUserHome/Library/Application Support/com.jamfsoftware.
 # if you include it in your UEX resources it will install there 
 diskicon="/System/Library/Extensions/IOStorageFamily.kext/Contents/Resources/Internal.icns"
 
-
+# use this to  
 ServiceDeskName="IT Support"
+jamfOpsTeamName="Sytem Administrator"
 
 # This enables the interaction for Help Disk Tickets
 # by default it is disabled. For more info on how to use this check the wiki in the Help Desk Ticket Section
@@ -39,7 +40,7 @@ restrictedAppName="/Library/Application Support/JAMF/UEX/resources/User Needs He
 # NOTE if you make it blank then it assumes you're creating a policy for each UEX policy using  
 # the below naming convention
 # EXAMPLE: "$UEXpolicyTrigger""_helpticket"
-UEXhelpticketTrigger="disk_space_help_ticket"
+UEXhelpticketTrigger="add_to_group_for_disk_space_help_ticket"
 ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
 
 
@@ -153,11 +154,11 @@ customMessage=${11}
 
 
 # fordebugging
-# NameConsolidated="Big Apps Inc;macOS Mojave;1.0"
+# NameConsolidated="Big Apps Inc;macOS Mojave;1.0;6000"
 # checks=`echo "macosupgrade compliance ssavail" | tr '[:upper:]' '[:lower:]'`
 # apps=""
 # installDuration=90
-# maxdeferConsolidated="7;0"
+# maxdeferConsolidated="0"
 # packages=""
 # triggers="bigkahuna;none"
 # customMessage="You will love the new dark mode!"
@@ -2456,7 +2457,7 @@ while [ $reqlooper = 1 ] ; do
 		fi
 	fi
 
-	if [[ $PostponeClickResult = "" ]] || [[ -z $PostponeClickResult ]] ; then
+	if [[ $PostponeClickResult = "" ]] || [[ -z $PostponeClickResult ]] && [[ $forceInstall != true ]] ; then
 		reqlooper=1
 		skipOver=true
 		log4_JSS "User either skipped or Jamf helper did not return a result."
@@ -2469,21 +2470,34 @@ while [ $reqlooper = 1 ] ; do
 
 		# delayOptions="0, 60, 3600, 7200, 14400, 86400"
 		if [ "$PostponeClickResult" = 60 ] ; then
-			log4_JSS "User chose to delay for 1 minute"
+			log4_JSS "Delay has been set to 1 minute"
 		elif [ "$PostponeClickResult" = 3600 ] ; then
-			log4_JSS "User chose to delay for 1 hour"
+			log4_JSS "Delay has been set to 1 hour"
 		elif [ "$PostponeClickResult" = 7200 ] ; then
-			log4_JSS "User chose to delay for 2 hours"
+			log4_JSS "Delay has been set to 2 hours"
 		elif [ "$PostponeClickResult" = 14400 ] ; then
-			log4_JSS "User chose to delay for 4 hours"
+			log4_JSS "Delay has been set to 4 hours"
 		elif [ "$PostponeClickResult" = 86400 ] && [ $loginscreeninstall != true ] ; then
-			log4_JSS "User chose to delay for 1 day"
+			log4_JSS "Delay has been set to 1 day"
 		fi
 
 
 	fi # if PPCR is blank because the user clicked close
 
+# If the install is 
+if [[ $forceInstall = true ]] && [[ "$checks" == *"compliance"* ]] ; then
+	#statements
+	complianceDescription="This $action is required for compliance and security reasons. 
 
+As it has be put off beyond the limit, this will now be installed automatically.
+
+In the future, to avoid forceful interuptions please try to run this $action before you run out of postponments.
+
+Thank you,
+$jamfOpsTeamName"
+
+	"$jhPath" -windowType hud -lockHUD -title "$title" -heading "Compliance $actionation - $heading" -description "$complianceDescription" -button1 "OK" -icon "$icon" -windowPosition lr -timeout 300 | grep -v 239 &
+fi
 
 	if [ ! -z $PostponeClickResult ] && [ $PostponeClickResult -gt 0 ] && [ $selfservicePackage != true ] && [[ "$ssavail" == true ]] && [[ "$skipOver" != true ]] && [[ $skipNotices != "true" ]] ; then
 		"$jhPath" -windowType hud -title "$title" -heading "Start the $action anytime" -description "$selfservicerunoption" -showDelayOptions -timeout 20 -icon "$ssicon" -windowPosition lr | grep -v 239 & 
@@ -2523,9 +2537,9 @@ Current work may be lost if you do not save before proceeding."
 		if [[ "$apps2quit" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$apps2ReOpen" == *".app"* ]] && [ -z $PostponeClickResult ] || [[ "$checks" == *"saveallwork"* ]] && [ -z $PostponeClickResult ] ; then
 			
 
-		#####################
-		# 		Quit	 	#
-		#####################
+		#########################
+		# 		SAFE Quit	 	#
+		#########################
 
 
 			fn_generatateApps2quit

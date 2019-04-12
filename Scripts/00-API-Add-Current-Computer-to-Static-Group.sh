@@ -6,15 +6,24 @@ jssGroupname="$4"
 # HIGHLY RECCOMEDED TO USE Encrypted-Script-Parameters
 # Please check out the Encrypted-Script-Parameters Repo from jamfIT on GitHub
 # https://github.com/jamfit/Encrypted-Script-Parameters
-jss_url="https://cubandave.local:8443"
-jss_userEncrptyed="U2FsdGVkX1/yDQNBhlSHn1I316TBLP9XAoQ5qBbBodE="
-jss_passEncrptyed="U2FsdGVkX1/yDQNBhlSHn65nLo71IAWNgCZ8Eae3DWY="
+jss_url="$5"
+jss_userEncrptyed="$6"
+jss_passEncrptyed="$7"
+
+# for testing
+# jss_url="https://cubandave.local:8443"
+# jss_userEncrptyed="U2FsdGVkX1/yDQNBhlSHn1I316TBLP9XAoQ5qBbBodE="
+# jss_passEncrptyed="U2FsdGVkX1/yDQNBhlSHn65nLo71IAWNgCZ8Eae3DWY="
 
 # DONT FORGET TO UPDATE THE SALT & PASS PHRASE
 function DecryptString() {
     # Usage: ~$ DecryptString "Encrypted String"
-    local SALT="f20d03418654879f"
-    local K="1761bd1ea2ccce4268c74629"
+    local SALT=""
+    local K=""
+
+    # for testing
+    # local SALT="f20d03418654879f"
+    # local K="1761bd1ea2ccce4268c74629"
     echo "${1}" | /usr/bin/openssl enc -aes256 -d -a -A -S "$SALT" -k "$K"
 }
 
