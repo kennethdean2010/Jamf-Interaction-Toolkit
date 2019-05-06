@@ -1685,24 +1685,26 @@ logInUEX4DebugMode "postponesLeft is $postponesLeft"
 ##									Disk Space Check									##
 ##########################################################################################
 	
-diskCheckDelayNumber=$(fn_getPlistValue "diskCheckDelayNumber" "defer_jss" "$packageName.plist")
-log4_JSS "diskCheckDelayNumber is $diskCheckDelayNumber"
-
-if [[ -z "$diskCheckDelayNumber" ]]; then
-	diskCheckDelayNumber=0
-fi
-
-if [[ $diskCheckDelayNumber == *"File Doesn"* ]] ; then diskCheckDelayNumber=0 ; fi
-
-log4_JSS "diskCheckDelayNumber is $diskCheckDelayNumber"
-
-diskRemindersLeft=$((diskCheckDelaylimit-diskCheckDelayNumber))
-log4_JSS "diskRemindersLeft is $diskRemindersLeft"
-
 
 if [[ "$spaceRequired" ]] ; then
-#####
-# Disk Space Check
+
+	diskCheckDelayNumber=$(fn_getPlistValue "diskCheckDelayNumber" "defer_jss" "$packageName.plist")
+	log4_JSS "diskCheckDelayNumber is $diskCheckDelayNumber"
+
+	if [[ -z "$diskCheckDelayNumber" ]]; then
+		diskCheckDelayNumber=0
+	fi
+
+
+	if [[ $diskCheckDelayNumber == *"File Doesn"* ]] ; then diskCheckDelayNumber=0 ; fi
+
+	log4_JSS "diskCheckDelayNumber is $diskCheckDelayNumber"
+
+	diskRemindersLeft=$((diskCheckDelaylimit-diskCheckDelayNumber))
+	log4_JSS "diskRemindersLeft is $diskRemindersLeft"
+	
+	#####
+	# Disk Space Check
 	free=`diskutil info / | grep "Free Space"`
 	if [ -z "$free" ] ; then
 		free=`diskutil info / | grep "Available" | awk '{print $4}'`
@@ -2489,9 +2491,9 @@ if [[ $forceInstall = true ]] && [[ "$checks" == *"compliance"* ]] ; then
 	#statements
 	complianceDescription="This $action is required for compliance and security reasons. 
 
-As it has be put off beyond the limit, this will now be installed automatically.
+As it has been put off beyond the limit, this will now be installed automatically.
 
-In the future, to avoid forceful interuptions please try to run this $action before you run out of postponments.
+In the future, to avoid forceful interruptions please try to run this $action before you run out of postponements.
 
 Thank you,
 $jamfOpsTeamName"
@@ -2737,7 +2739,7 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 	delayDate=$((runDate+delaytime))
 	delayDateFriendly=`date -r $delayDate`
 
-	log4_JSS "The next $action prompt is postponed until after $delayDateFriendly"
+	
 
 	if [ $selfservicePackage = true ] ; then
 		log4_JSS "SELF SERVICE PACKAGE: Skipping Delay Service"
@@ -2748,6 +2750,8 @@ if [[ $PostponeClickResult -gt 0 ]] ; then
 		fi
 
 	else # not a self service package
+
+		log4_JSS "The next $action prompt is postponed until after $delayDateFriendly"
 		
 		#if the defer folder if empty and i'm creating the first deferal then invetory updates are needed to the comptuer is in scope of the deferral service
 		deferfolderContents=`ls "/Library/Application Support/JAMF/UEX/defer_jss/" | grep plist`

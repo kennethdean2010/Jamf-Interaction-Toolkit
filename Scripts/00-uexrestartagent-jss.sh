@@ -213,8 +213,8 @@ if [[ $otherJamfprocess == "" ]] ; then
 			fvUnlockHeading="FileVault Authorized Restart"
 			fvUnlockNotice='In order for the changes to complete you must restart your computer. Please save your work. 
 	
-Would you like enter your password to have the computer unlock the disk automatically? 
-Note: Automatic does not always occur.'
+Would you to like enter your password to have the computer unlock the disk automatically? 
+Note: Automatic unlock does not always occur.'
 	
 		#notice
 		fvUnlockButton=`"$jhPath" -windowType hud -lockHUD -heading "$fvUnlockHeading" -windowPostion lr -title "$title" -description "$fvUnlockNotice" -icon "$icon" -timeout 300 -countdown -alignCountdown center -button1 "No" -button2 "Yes" `

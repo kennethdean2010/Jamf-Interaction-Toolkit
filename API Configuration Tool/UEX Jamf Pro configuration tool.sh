@@ -20,7 +20,7 @@ packages=(
 # This enables the interaction for Help Disk Tickets
 # by default it is disabled. For more info on how to use this check the wiki in the Help Desk Ticket Section
 helpTicketsEnabledViaAppRestriction=false
-helpTicketsEnabledViaGeneralStaticGroup=false
+helpTicketsEnabledViaGeneralStaticGroup=true
 restrictedAppName="User Needs Helps Clearing Space.app"
 staticGroupName="User Needs Help Clearing Disk Space"
 
@@ -49,7 +49,7 @@ scripts=(
 	"00-uexrestartagent-jss"
 	"00-uex_inventory_update_agent-jss"
 	"00-API-Add-Current-Computer-to-Static-Group.sh"
-	"00-API-Remove-Current-Computer-to-Static-Group.sh"
+	"00-API-Remove-Current-Computer-from-Static-Group.sh"
 )
 
 triggerscripts=(
@@ -62,7 +62,7 @@ triggerscripts=(
 
 apiScripts=(
 	"00-API-Add-Current-Computer-to-Static-Group.sh"
-	"00-API-Remove-Current-Computer-to-Static-Group.sh"
+	"00-API-Remove-Current-Computer-from-Static-Group.sh"
 )
 
 UEXInteractionScripts=(
@@ -500,7 +500,7 @@ fn_openAPIPolicies () {
 	FNgetID "policies" "00-API-Add-Current-Computer-to-Static-Group - Disk Space - Trigger"
 	sudo -u "$loggedInUser" -H open "$jss_url/policies.html?id=$retreivedID&o=u"
 
-	FNgetID "policies" "00-API-Remove-Current-Computer-to-Static-Group - Disk Space - Trigger"
+	FNgetID "policies" "00-API-Remove-Current-Computer-from-Static-Group - Disk Space - Trigger"
 	sudo -u "$loggedInUser" -H open "$jss_url/policies.html?id=$retreivedID&o=u"
 }
 
@@ -537,7 +537,7 @@ if [[ "$helpTicketsEnabledViaGeneralStaticGroup" = true ]]; then
 	done
 
 	fn_createAPIPolicy "00-API-Add-Current-Computer-to-Static-Group" "$UEXhelpticketTrigger" "$staticGroupName" "$jss_url"
-	fn_createAPIPolicy "00-API-Remove-Current-Computer-to-Static-Group" "$ClearHelpTicketRequirementTrigger" "$staticGroupName" "$jss_url"
+	fn_createAPIPolicy "00-API-Remove-Current-Computer-from-Static-Group" "$ClearHelpTicketRequirementTrigger" "$staticGroupName" "$jss_url"
 
 fi
 
