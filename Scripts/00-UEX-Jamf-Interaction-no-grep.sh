@@ -96,6 +96,7 @@ jhPath="/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamf
 ########################################################################################## 
 
 jamfBinary="/usr/local/jamf/bin/jamf"
+osMajor=$( /usr/bin/sw_vers -productVersion | awk -F. {'print $2'} )
 
 ##########################################################################################
 ##									Paramaters for UEX									##
@@ -883,14 +884,14 @@ Downloading updates."
 		if [[ "$updates" == *"OS X"* ]] ; then
 			checks+=" power"
 			checks+=" compliance"
-			installDuration=5
+			installDuration=45
 			diagblock=true
 		fi
 		
 		if [[ "$updates" == *"macOS"* ]] ; then
 			checks+=" power"
 			checks+=" compliance"
-			installDuration=5
+			installDuration=45
 			diagblock=true
 		fi
 		
@@ -903,7 +904,6 @@ Downloading updates."
 
 		if [[ "$updates" == *"restart"* ]] ; then
 			checks+=" restart"
-			installDuration=5
 			log4_JSS "requires restart"
 		fi
 		
@@ -2068,9 +2068,11 @@ You can also run the $action from $SelfServiceAppName when you've cleared up the
 "
 fi 
 
-spaceMsg+="
-Use 'Find Clutter' to find large files or change your settings to save space."
 
+if [[ "$osMajor" -ge 12 ]] ; then
+	spaceMsg+="
+Use 'Find Clutter' to find large files or change your settings to save space."
+fi
 
 spaceMsg+="
 				
@@ -2270,10 +2272,12 @@ while [ $reqlooper = 1 ] ; do
 	
 	if [[ "$insufficientSpace" = true ]] ; then
 
-		
+		if [[ "$osMajor" -ge 12 ]] ; then
+			SpaceButton=$("$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$spaceMsg" -button1 "OK" -button2 "Find Clutter" -icon "$diskicon" -timeout 600 -windowPosition center -timeout $jhTimeOut | grep -v 239 )
+		else
+			SpaceButton=$("$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$spaceMsg" -button1 "OK" -icon "$diskicon" -timeout 600 -windowPosition center -timeout $jhTimeOut | grep -v 239 )
+		fi
 
-		SpaceButton=$("$jhPath" -windowType hud -lockHUD -title "$title" -heading "$heading" -description "$spaceMsg" -button1 "OK" -button2 "Find Clutter" -icon "$diskicon" -timeout 600 -windowPosition center -timeout $jhTimeOut | grep -v 239 )
-		
 		if [ $SpaceButton = "2" ] ; then
 			log4_JSS "User clicked the 'Find Clutter Button'"
 			fn_find_Clutter
