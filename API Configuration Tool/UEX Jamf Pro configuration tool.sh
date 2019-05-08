@@ -20,7 +20,7 @@ packages=(
 # This enables the interaction for Help Disk Tickets
 # by default it is disabled. For more info on how to use this check the wiki in the Help Desk Ticket Section
 helpTicketsEnabledViaAppRestriction=false
-helpTicketsEnabledViaGeneralStaticGroup=true
+helpTicketsEnabledViaGeneralStaticGroup=false
 restrictedAppName="User Needs Helps Clearing Space.app"
 staticGroupName="User Needs Help Clearing Disk Space"
 
@@ -572,13 +572,13 @@ fi
 	# "Checks"
 	# "Apps for Quick and Block"
 	# "InstallDuration - Must be integer"
-	# "maximum deferral - Must be integer"
+	# "Maximum Deferral of Posponements;Service Desk Disk Space Limit - Must be integer"
 	# "Packages separated by semi-colon"
 	# "Trigger Names separated by semi-colon"
 	# "Custom Message - optional"
 
 	for UEXInteractionScript in "${UEXInteractionScripts[@]}" ; do
-		fn_setScriptParameters "$UEXInteractionScript" "Vendor;AppName;Version;SpaceReq" "Checks" "Apps for Quick and Block" "InstallDuration - Must be integer" "maximum deferral - Must be integer" "Packages separated by semi-colon" "Trigger Names separated by semi-colon" "Custom Message - optional"
+		fn_setScriptParameters "$UEXInteractionScript" "Vendor;AppName;Version;SpaceReq" "Checks" "Apps for Quick and Block" "InstallDuration - Must be integer" "Maximum Deferral of Posponements;Service Desk Disk Space Limit - Must be integer" "Packages separated by semi-colon" "Trigger Names separated by semi-colon" "Custom Message - optional"
 	done
 
 

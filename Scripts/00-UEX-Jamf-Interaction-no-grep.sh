@@ -24,8 +24,10 @@ SelfServiceIcon="$loggedInUserHome/Library/Application Support/com.jamfsoftware.
 # if you include it in your UEX resources it will install there 
 diskicon="/System/Library/Extensions/IOStorageFamily.kext/Contents/Resources/Internal.icns"
 
-# use this to  
+# use this to customize the name of your IT Support team when space notification tickets are created 
 ServiceDeskName="IT Support"
+
+# Use this to customize the name of your jamf admin team signure in the compliance notification
 jamfOpsTeamName="Sytem Administrator"
 
 # This enables the interaction for Help Disk Tickets
@@ -42,6 +44,7 @@ restrictedAppName="/Library/Application Support/JAMF/UEX/resources/User Needs He
 # NOTE if you make it blank then it assumes you're creating a policy for each UEX policy using  
 # the below naming convention
 # EXAMPLE: "$UEXpolicyTrigger""_helpticket"
+# EXAMPLE REmoval Policy: "$UEXpolicyTrigger""_helpticket"
 UEXhelpticketTrigger="add_to_group_for_disk_space_help_ticket"
 ClearHelpTicketRequirementTrigger="remove_from_group_for_disk_space_help_ticket"
 
@@ -139,7 +142,7 @@ installDuration=$7
 
 # default is 1
 # maxdefer="1"
-# LABEL: maximum deferral - Must be integer
+# LABEL: "Maximum Deferral of Posponements;Service Desk Disk Space Limit - Must be integer"
 maxdeferConsolidated="$8"
 
 # Insert name of PKG files here that are copying to /private/tmp/ during install
