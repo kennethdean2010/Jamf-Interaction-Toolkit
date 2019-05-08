@@ -34,6 +34,8 @@ helpTicketsEnabled=false
 helpTicketsEnabledViaAppRestriction=false
 helpTicketsEnabledViaTrigger=false
 helpTicketsEnabledViaFunction=false
+
+# If you move the UEX Resources to another location or use a difffernt app then change this.
 restrictedAppName="/Library/Application Support/JAMF/UEX/resources/User Needs Helps Clearing Space.app"
 
 # Change this to your own trigger if you want to use a custom policy to notify you
